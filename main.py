@@ -102,8 +102,11 @@ abuselog_url = "https://zh.minecraft.wiki/api.php?action=query&format=json&prop=
 data1 = get_data(rc_url)
 log1 = get_data(abuselog_url)
 
+last_abuse_check = time.time() # 记录上次检查滥用日志的时间
+
 while 1: # 主循环，每5秒获取一次最近更改数据，每30秒获取一次滥用日志数据
     time.sleep(5)
+    current_time = time.time()
     data2 = get_data(rc_url)
 
     # 根据时间戳差异确定新增数据
@@ -113,3 +116,15 @@ while 1: # 主循环，每5秒获取一次最近更改数据，每30秒获取一
     new_data = [item for item in data2['query']['recentchanges'] if item['timestamp'] in new_timestamps]
     print_rc(new_data)
     data1 = data2
+
+    if current_time - last_abuse_check >= 30:
+        log2 = get_data(abuselog_url)
+
+        # 根据时间戳差异确定新增滥用日志数据
+        log_timestamps1 = [item['timestamp'] for item in log1['query']['abuselog']]
+        log_timestamps2 = [item['timestamp'] for item in log2['query']['abuselog']]
+        new_log_timestamps = [ts for ts in log_timestamps2 if ts not in log_timestamps1]
+        new_log = [item for item in log2['query']['abuselog'] if item['timestamp'] in new_log_timestamps]
+        print_abuselog(new_log)
+        log1 = log2
+        last_abuse_check = current_time
