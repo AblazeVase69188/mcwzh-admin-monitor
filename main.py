@@ -11,6 +11,7 @@ CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
 SOUND_FILE = "sound.mp3"
 WIKI_BASE_URL = "https://zh.minecraft.wiki"
+WIKI_API_URL = WIKI_BASE_URL + "/api.php"
 
 class Colors:
     BLUE = '\033[94m'
@@ -195,11 +196,12 @@ def print_rc(new_data): # 处理数据
         if data['user'] not in special_users: # 无巡查豁免权限用户执行操作才出现弹窗
             notification(toast_msg, url)
 
-def get_data(api_url): # 从Mediawiki API获取数据
+def call_api(params): # 从Mediawiki API获取数据
     tries = 0
     while 1:
         try:
-            response = requests.get(api_url, headers={"User-Agent": user_agent})
+            # 发送 API 请求
+            response = session.post(WIKI_API_URL, data=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
@@ -229,10 +231,13 @@ def get_data(api_url): # 从Mediawiki API获取数据
     input("按任意键退出")
     sys.exit(1)
 
-# 登录
+# 读取配置文件
 with open(CONFIG_FILE, "r") as config_file:
     config = json.load(config_file)
-    user_agent = config["user_agent"]
+    client_key = config["Client_application_key"]
+    client_secret = config["Client_application_secret"]
+    access_token = config["Access_token"]
+    user_agent = config["User_Agent"]
 
 # 获取巡查豁免权限用户列表
 try:
@@ -242,12 +247,31 @@ except FileNotFoundError:
     print("巡查豁免权限用户列表获取失败", end='\n\n')
     special_users = set()
 
+# 创建带认证头的会话
+session = requests.Session()
+session.headers.update({
+    "Authorization": f"Bearer {access_token}",
+    "User-Agent": user_agent
+})
+
+rc_base_params = {
+    "action": "query",
+    "format": "json",
+    "list": "recentchanges",
+    "formatversion": "2",
+    "rcprop": "user|title|timestamp|ids|loginfo|sizes|comment",
+    "rcshow": "!bot",
+    "rctype": "edit|new|log|external"
+}
+
 # 最近更改：不要获取机器人编辑，每次最多获取100个编辑
-rc_url = f"{WIKI_BASE_URL}/api.php?action=query&format=json&list=recentchanges&formatversion=2&rcprop=user|title|timestamp|ids|loginfo|sizes|comment&rcshow=!bot&rclimit=100&rctype=edit|new|log|external"
+rc_params = rc_base_params.copy()
+rc_params.update({"rclimit": "100"})
 
 # 给第一次循环准备对比数据
-initial_rc_url = f"{WIKI_BASE_URL}/api.php?action=query&format=json&list=recentchanges&formatversion=2&rcprop=user|title|timestamp|ids|loginfo|sizes|comment&rcshow=!bot&rclimit=1&rctype=edit|new|log|external"
-initial_data = get_data(initial_rc_url)
+inirial_rc_params = rc_base_params.copy()
+inirial_rc_params.update({"rclimit": "1"})
+initial_data = call_api(inirial_rc_params)
 last_timestamp = initial_data['query']['recentchanges'][0]['timestamp']
 last_rcid = initial_data['query']['recentchanges'][0]['rcid']
 
@@ -255,8 +279,10 @@ print("启动成功", end='\n\n')
 
 while 1: # 主循环，每5秒获取一次数据
     time.sleep(5)
-    current_url = f"{rc_url}&rcend={last_timestamp}"
-    current_data = get_data(current_url)
+
+    current_rc_params = rc_params.copy()
+    current_rc_params.update({"rcend": last_timestamp})
+    current_data = call_api(current_rc_params)
 
     # 过滤出rcid大于last_rcid的新更改
     new_items = []
