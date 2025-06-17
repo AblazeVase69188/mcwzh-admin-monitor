@@ -1,9 +1,11 @@
-# mcwzh-rc-monitor
-此程序用于自动获取中文Minecraft Wiki最近更改的新内容。
+# mcwzh-admin-monitor
+此程序用于自动获取中文Minecraft Wiki最近更改和滥用日志的新内容。
 
-The program automatically gets new content on RecentChanges of the Chinese Minecraft Wiki.
+The program automatically gets new content in RecentChanges and Abuse logs of the Chinese Minecraft Wiki.
 
 ## 用途
+当前功能与mcwzh-rc-monitor相同，剩余功能正在开发中。
+<!--
 每5秒尝试获取一次中文Minecraft Wiki最近更改的变化情况，新更改内容在Windows终端输出，如果是无巡查豁免权限的用户执行的操作还会产生通知弹窗并播放音效。
 
 ## 运作方式
@@ -16,6 +18,6 @@ The program automatically gets new content on RecentChanges of the Chinese Minec
 
 ## 注意事项
 部分功能仅持有巡查员权限的用户可正常使用（其实只有特殊巡查那个链接才是）。程序仅在Windows 11上可用（其实只是我没在Windows 10上面测试过而已）。如果5秒内的最近更改新内容大于100条，程序只会处理最新的100条。
-
+-->
 ## 授权协议
 程序采用与Minecraft Wiki相同的CC BY-NC-SA 3.0协议授权。
