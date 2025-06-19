@@ -212,7 +212,7 @@ def call_api(params): # 从Mediawiki API获取数据
             current_time = datetime.now().strftime("%H:%M:%S")
             print(f"（{current_time}）{Colors.RED}未获取到数据，20秒后重试。{Colors.RESET}", end='\n\n')
             toast = Notification(
-                app_id="Minecraft Wiki RecentChanges Monitor",
+                app_id="Minecraft Wiki Admin Monitor",
                 title="",
                 msg="未获取到数据，20秒后重试。"
             )
@@ -222,7 +222,7 @@ def call_api(params): # 从Mediawiki API获取数据
 
     print(f"{Colors.RED}重试失败，请检查网络连接。{Colors.RESET}")
     toast = Notification(
-        app_id="Minecraft Wiki RecentChanges Monitor",
+        app_id="Minecraft Wiki Admin Monitor",
         title="",
         msg="重试失败，请检查网络连接。"
     )
@@ -254,34 +254,54 @@ session.headers.update({
     "User-Agent": user_agent
 })
 
-rc_base_params = {
+# 最近更改：不要获取机器人编辑，每次最多获取100个编辑
+rc_params = {
     "action": "query",
     "format": "json",
     "list": "recentchanges",
     "formatversion": "2",
     "rcprop": "user|title|timestamp|ids|loginfo|sizes|comment",
     "rcshow": "!bot",
-    "rctype": "edit|new|log|external"
+    "rctype": "edit|new|log|external",
+    "rclimit": "100"
 }
 
-# 最近更改：不要获取机器人编辑，每次最多获取100个编辑
-rc_params = rc_base_params.copy()
-rc_params.update({"rclimit": "100"})
+# 滥用日志：每次最多获取100条记录
+afl_params = {
+    "action": "query",
+    "format": "json",
+    "list": "abuselog",
+    "formatversion": "2",
+    "aflprop": "user|title|action|result|timestamp|revid|filter|ids",
+    "afllimit": "100"
+}
 
 # 给第一次循环准备对比数据
-inirial_rc_params = rc_base_params.copy()
-inirial_rc_params.update({"rclimit": "1"})
-initial_rc_data = call_api(inirial_rc_params)
-last_timestamp = initial_rc_data['query']['recentchanges'][0]['timestamp']
+initial_rc_params = rc_params.copy()
+initial_rc_params.update({
+    "rclimit": "1",
+    "rcprop": "timestamp|ids"
+})
+initial_rc_data = call_api(initial_rc_params)
+last_rc_timestamp = initial_rc_data['query']['recentchanges'][0]['timestamp']
 last_rcid = initial_rc_data['query']['recentchanges'][0]['rcid']
+
+initial_afl_params = afl_params.copy()
+initial_afl_params.update({
+    "afllimit": "1",
+    "aflprop": "ids|timestamp"
+})
+initial_afl_data = call_api(initial_afl_params)
+last_afl_timestamp = initial_afl_data['query']['abuselog'][0]['timestamp']
+last_afl_id = initial_afl_data['query']['abuselog'][0]['id']
 
 print("启动成功", end='\n\n')
 
-while 1: # 主循环，每5秒获取一次数据
+while 1: # 主循环，每5秒获取一次最近更改和滥用日志数据
     time.sleep(5)
 
     current_rc_params = rc_params.copy()
-    current_rc_params.update({"rcend": last_timestamp})
+    current_rc_params.update({"rcend": last_rc_timestamp})
     current_rc_data = call_api(current_rc_params)
 
     # 过滤出rcid大于last_rcid的新更改
@@ -290,12 +310,28 @@ while 1: # 主循环，每5秒获取一次数据
         if rc_item['rcid'] > last_rcid:
             new_rc_items.append(rc_item)
 
-    if not new_rc_items:
-        continue
+    current_afl_params = afl_params.copy()
+    current_afl_params.update({"aflend": last_afl_timestamp})
+    current_afl_data = call_api(current_afl_params)
 
-    last_timestamp = new_rc_items[0]['timestamp']
-    last_rcid = new_rc_items[0]['rcid']
+    # 过滤出id大于last_afl_id的新滥用日志
+    new_afl_items = []
+    for afl_item in current_afl_data['query']['abuselog']:
+        if afl_item['id'] > last_afl_id:
+            new_afl_items.append(afl_item)
 
-    new_rc_items = new_rc_items[::-1]
+    if new_rc_items:
+        last_rc_timestamp = new_rc_items[0]['timestamp']
+        last_rcid = new_rc_items[0]['rcid']
+
+        new_rc_items = new_rc_items[::-1]
+
+    if new_afl_items:
+        last_afl_timestamp = new_afl_items[0]['timestamp']
+        last_afl_id = new_afl_items[0]['id']
+
+        new_afl_items = new_afl_items[::-1]
+
+        # print_afl(new_afl_items)
 
     print_rc(new_rc_items)
