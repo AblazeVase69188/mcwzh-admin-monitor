@@ -79,7 +79,7 @@ TOAST_TEMPLATES = {
     "new": "{user}创建{title}，字节更改为{length_diff}，摘要为{comment}。"
 }
 
-def generate_messages(data): # 生成控制台消息和弹窗消息文本
+def generate_rc_messages(data): # 最近更改：生成控制台消息和弹窗消息文本
     base_params = {
         "time": format_timestamp(data['timestamp']),
         "user": data['user'],
@@ -152,7 +152,7 @@ def generate_url(data): # 生成url
 
 def notification(msg_body,url): # 产生弹窗通知
     toast = Notification(
-        app_id="Minecraft Wiki RecentChanges Monitor",
+        app_id="Minecraft Wiki Admin Monitor",
         title="",
         msg=msg_body
     )
@@ -182,9 +182,9 @@ def format_length_diff(newlen, oldlen): # 字节数变化输出和mw一致
     diff = newlen - oldlen
     return f"+{diff}" if diff > 0 else f"{diff}"
 
-def print_rc(new_data): # 处理数据
+def print_rc(new_data): # 处理最近更改数据
     for data in new_data:
-        console_msg, toast_msg = generate_messages(data)
+        console_msg, toast_msg = generate_rc_messages(data)
         url = generate_url(data)
 
         print(console_msg)
@@ -198,9 +198,9 @@ def print_rc(new_data): # 处理数据
 
 def call_api(params): # 从Mediawiki API获取数据
     tries = 0
-    while 1:
+    while True:
         try:
-            # 发送 API 请求
+            # 发送API请求
             response = session.post(WIKI_API_URL, data=params)
             response.raise_for_status()
             return response.json()
@@ -271,9 +271,9 @@ rc_params.update({"rclimit": "100"})
 # 给第一次循环准备对比数据
 inirial_rc_params = rc_base_params.copy()
 inirial_rc_params.update({"rclimit": "1"})
-initial_data = call_api(inirial_rc_params)
-last_timestamp = initial_data['query']['recentchanges'][0]['timestamp']
-last_rcid = initial_data['query']['recentchanges'][0]['rcid']
+initial_rc_data = call_api(inirial_rc_params)
+last_timestamp = initial_rc_data['query']['recentchanges'][0]['timestamp']
+last_rcid = initial_rc_data['query']['recentchanges'][0]['rcid']
 
 print("启动成功", end='\n\n')
 
@@ -282,20 +282,20 @@ while 1: # 主循环，每5秒获取一次数据
 
     current_rc_params = rc_params.copy()
     current_rc_params.update({"rcend": last_timestamp})
-    current_data = call_api(current_rc_params)
+    current_rc_data = call_api(current_rc_params)
 
     # 过滤出rcid大于last_rcid的新更改
-    new_items = []
-    for item in current_data['query']['recentchanges']:
-        if item['rcid'] > last_rcid:
-            new_items.append(item)
+    new_rc_items = []
+    for rc_item in current_rc_data['query']['recentchanges']:
+        if rc_item['rcid'] > last_rcid:
+            new_rc_items.append(rc_item)
 
-    if not new_items:
+    if not new_rc_items:
         continue
 
-    last_timestamp = new_items[0]['timestamp']
-    last_rcid = new_items[0]['rcid']
+    last_timestamp = new_rc_items[0]['timestamp']
+    last_rcid = new_rc_items[0]['rcid']
 
-    new_items = new_items[::-1]
+    new_rc_items = new_rc_items[::-1]
 
-    print_rc(new_items)
+    print_rc(new_rc_items)
