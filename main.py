@@ -234,10 +234,8 @@ def call_api(params): # 从Mediawiki API获取数据
 # 读取配置文件
 with open(CONFIG_FILE, "r") as config_file:
     config = json.load(config_file)
-    client_key = config["Client_application_key"]
-    client_secret = config["Client_application_secret"]
-    access_token = config["Access_token"]
-    user_agent = config["User_Agent"]
+    Access_token = config["Access_token"]
+    User_Agent = config["User_Agent"]
 
 # 获取巡查豁免权限用户列表
 try:
@@ -250,8 +248,8 @@ except FileNotFoundError:
 # 创建带认证头的会话
 session = requests.Session()
 session.headers.update({
-    "Authorization": f"Bearer {access_token}",
-    "User-Agent": user_agent
+    "Authorization": f"Bearer {Access_token}",
+    "User-Agent": User_Agent
 })
 
 # 最近更改：不要获取机器人编辑，每次最多获取100个编辑
