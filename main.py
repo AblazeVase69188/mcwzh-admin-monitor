@@ -42,7 +42,7 @@ LOG_ACTION_MAP = {
     "overwrite": "覆盖上传",
     "block": "封禁",
     "reblock": "更改封禁",
-    "unblock": "解除封禁",
+    "unblock": "解封",
     "move_prot": "移动保护设置",
     "protect": "保护",
     "unprotect": "移除保护",
@@ -54,7 +54,8 @@ LOG_ACTION_MAP = {
     "revert": "恢复至旧版本",
     "restore": "还原修订版本",
     "event": "更改日志可见性",
-    "renameuser": "重命名用户"
+    "renameuser": "重命名用户",
+    "revision": "更改版本可见性"
 }
 
 MESSAGE_TEMPLATES = {
