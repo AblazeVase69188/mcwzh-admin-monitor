@@ -23,39 +23,129 @@ class Colors:
     RESET = '\033[0m'
 
 LOG_TYPE_MAP = {
-    "newusers": "用户创建",
-    "delete": "删除",
-    "block": "封禁",
-    "protect": "保护",
     "abusefilter": "滥用过滤器",
-    "rights": "用户权限",
-    "upload": "上传",
+    "abusefilterblockeddomainhit": "被阻止的域名访问",
+    "abusefilterprivatedetails": "abusefilterprivatedetails",
+    "block": "封禁",
+    "checkuser-temporary-account": "checkuser-temporary-account",
+    "contentmodel": "内容模型更改",
+    "create": "页面创建",
+    "delete": "删除",
+    "gblblock": "全域封禁",
+    "gblrights": "全域权限历史记录", # 原文无“日志”两字
+    "gloopcontrol": "gloopcontrol",
+    "import": "导入",
+    "managetags": "标签管理",
+    "merge": "合并",
     "move": "移动",
-    "renameuser": "用户更名"
+    "newusers": "用户创建",
+    "oath": "oath",
+    "patrol": "巡查",
+    "protect": "保护",
+    "renameuser": "用户更名",
+    "rights": "用户权限",
+    "smw": "语义MediaWiki",
+    "spamblacklist": "spamblacklist",
+    "suppress": "suppress",
+    "tag": "标签",
+    "thanks": "感谢",
+    "timedmediahandler": "TimedMediaHandler",
+    "titleblacklist": "titleblacklist",
+    "upload": "上传"
 }
 
 LOG_ACTION_MAP = {
+    # abusefilter
     "create": "创建",
-    "upload": "上传",
-    "delete": "删除",
-    "move": "移动",
-    "overwrite": "覆盖上传",
+    "hit": "hit",
+    "modify": "修改",
+    # abusefilterblockeddomainhit（仅包含*）
+    # abusefilterprivatedetails
+    "access": "access",
+    # block
     "block": "封禁",
-    "reblock": "更改封禁",
+    "reblock": "更改封禁设置",
     "unblock": "解封",
+    # checkuser-private-event（仅包含*）
+    # checkuser-temporary-account（仅包含*）
+    # contentmodel
+    "change": "内容模型的更改",
+    "new": "使用非默认内容模型创建页面",
+    # create
+    '''"create": "",'''
+    # delete
+    "delete": "删除",
+    "delete_redir": "通过覆盖删除重定向",
+    "delete_redir2": "delete_redir2",
+    "event": "更改日志事件的可见性",
+    "restore": "还原页面",
+    "revision": "更改页面版本的可见性",
+    # gblblock
+    "dwhitelist": "全域封禁白名单移除",
+    "gblock": "全域封禁",
+    "gblock2": "gblock2",
+    "gunblock": "全域解封",
+    '''"modify": "全域封禁修改",'''
+    "whitelist": "全域封禁白名单添加",
+    # gblrights
+    '''"rights": "",'''
+    # gloopcontrol（仅包含*）
+    # import
+    "interwiki": "跨wiki导入",
+    '''"upload": "通过XML上传导入",'''
+    # interwiki（仅包含*）
+    # managetags
+    "activate": "标签激活",
+    '''"create": "标签创建",'''
+    "deactivate": "标签取消激活",
+    '''"delete": "标签删除",'''
+    # merge
+    "merge": "合并页面历史",
+    # move
+    "move": "移动页面",
+    "move_redir": "移动页面覆盖重定向",
+    # newusers
+    "autocreate": "自动创建账号",
+    "byemail": "创建账号并且密码已通过电子邮件发送",
+    '''"create": "匿名用户创建账号",'''
+    "create2": "注册用户创建账号",
+    "migrated": "迁移账号",
+    "newusers": "newusers",
+    # oath（仅包含*）
+    # patrol
+    "autopatrol": "自动标记页面版本为已巡查",
+    "patrol": "标记页面版本为已巡查",
+    # protect
+    '''"modify": "更改保护设定",'''
     "move_prot": "移动保护设置",
     "protect": "保护",
     "unprotect": "移除保护",
-    "modify": "修改",
-    "create2": "登录状态创建账号",
-    "byemail": "登录状态创建账号2",
-    "migrated": "迁移",
-    "rights": "权限更改",
-    "revert": "恢复至旧版本",
-    "restore": "还原修订版本",
-    "event": "更改日志可见性",
+    # renameuser
     "renameuser": "重命名用户",
-    "revision": "更改版本可见性"
+    # rights
+    "autopromote": "autopromote",
+    "blockautopromote": "禁止获得自动授权",
+    "restoreautopromote": "允许获得自动授权",
+    "rights": "更改用户组",
+    # spamblacklist（仅包含*）
+    # suppress
+    '''"block": "",'''
+    '''"delete": "",'''
+    '''"event": "",'''
+    "hide-afl": "hide-afl",
+    '''"reblock": "",'''
+    '''"revision": "",'''
+    "unhide-afl": "unhide-afl",
+    # tag
+    "update": "向修订版本添加标签",
+    # thanks（仅包含*）
+    # timedmediahandler
+    "resettranscode": "重置转码",
+    # titleblacklist（仅包含*）
+    # upload
+    "overwrite": "覆盖上传",
+    "revert": "回退至旧版本",
+    "upload": "上传"
 }
 
 MESSAGE_TEMPLATES = {
