@@ -148,6 +148,32 @@ LOG_ACTION_MAP = {
     "upload": "上传"
 }
 
+AF_ACTION_MAP = {
+    "autocreateaccount": "自动创建账号",
+    "createaccount": "创建账号",
+    "delete": "删除",
+    "edit": "编辑",
+    "move": "移动",
+    "stashupload": "通过编辑器上传文件",
+    "upload": "上传文件"
+}
+
+AF_RESULT_MAP = {
+    "": "无",
+    "block": "封禁",
+    "blockautopromote": "撤销自动确认",
+    "blockautopromote,block": "撤销自动确认、封禁",
+    "blockautopromote,rangeblock": "撤销自动确认、区段封禁",
+    "blockautopromote,rangeblock,block": "撤销自动确认、区段封禁、封禁",
+    "degroup": "从用户组移除",
+    "disallow": "阻止",
+    "rangeblock": "区段封禁",
+    "rangeblock,block": "区段封禁、封禁",
+    "tag": "标签",
+    "throttle": "频率控制",
+    "warn": "警告"
+}
+
 MESSAGE_TEMPLATES = {
     "log": {
         "upload": "（{magenta}上传日志{reset}）{time}，{user}对{title}执行了{action}操作，摘要为{comment}。",
