@@ -154,7 +154,7 @@ AF_ACTION_MAP = {
     "delete": "删除",
     "edit": "编辑",
     "move": "移动",
-    "stashupload": "通过编辑器上传文件",
+    "stashupload": "stashupload",
     "upload": "上传文件"
 }
 
