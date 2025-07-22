@@ -3,15 +3,15 @@ import json
 import time
 import sys
 from datetime import datetime
-from playsound3 import playsound
-from playsound3.playsound3 import PlaysoundException
-from winotify import Notification
 
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
 SOUND_FILE = "sound.mp3"
-WIKI_BASE_URL = "https://zh.minecraft.wiki"
-WIKI_API_URL = WIKI_BASE_URL + "/api.php"
+WIKI_BASE_URL = "https://zh.minecraft.wiki/"
+WIKI_API_URL = WIKI_BASE_URL + "api.php"
+WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
+WIKI_LOG_URL = WIKI_BASE_URL + "Special:%E6%97%A5%E5%BF%97/"
+WIKI_AFL_URL = WIKI_BASE_URL + "Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97/"
 
 class Colors:
     BLUE = '\033[94m'
@@ -23,35 +23,35 @@ class Colors:
     RESET = '\033[0m'
 
 LOG_TYPE_MAP = {
-    "abusefilter": "滥用过滤器",
-    "abusefilterblockeddomainhit": "被阻止的域名访问",
-    "abusefilterprivatedetails": "abusefilterprivatedetails",
-    "block": "封禁",
-    "checkuser-temporary-account": "checkuser-temporary-account",
-    "contentmodel": "内容模型更改",
-    "create": "页面创建",
-    "delete": "删除",
-    "gblblock": "全域封禁",
-    "gblrights": "全域权限历史记录", # 原文无“日志”两字
-    "gloopcontrol": "gloopcontrol",
-    "import": "导入",
-    "managetags": "标签管理",
-    "merge": "合并",
-    "move": "移动",
-    "newusers": "用户创建",
-    "oath": "oath",
-    "patrol": "巡查",
-    "protect": "保护",
-    "renameuser": "用户更名",
-    "rights": "用户权限",
-    "smw": "语义MediaWiki",
-    "spamblacklist": "spamblacklist",
-    "suppress": "suppress",
-    "tag": "标签",
-    "thanks": "感谢",
-    "timedmediahandler": "TimedMediaHandler",
-    "titleblacklist": "titleblacklist",
-    "upload": "上传"
+    "abusefilter": "滥用过滤器日志",
+    "abusefilterblockeddomainhit": "被阻止的域名访问日志",
+    "abusefilterprivatedetails": "abusefilterprivatedetails日志",
+    "block": "封禁日志",
+    "checkuser-temporary-account": "checkuser-temporary-account日志",
+    "contentmodel": "内容模型更改日志",
+    "create": "页面创建日志",
+    "delete": "删除日志",
+    "gblblock": "全域封禁日志",
+    "gblrights": "全域权限历史记录",
+    "gloopcontrol": "gloopcontrol日志",
+    "import": "导入日志",
+    "managetags": "标签管理日志",
+    "merge": "合并日志",
+    "move": "移动日志",
+    "newusers": "用户创建日志",
+    "oath": "oath日志",
+    "patrol": "巡查日志",
+    "protect": "保护日志",
+    "renameuser": "用户更名日志",
+    "rights": "用户权限日志",
+    "smw": "语义MediaWiki日志",
+    "spamblacklist": "spamblacklist日志",
+    "suppress": "suppress日志",
+    "tag": "标签日志",
+    "thanks": "感谢日志",
+    "timedmediahandler": "TimedMediaHandler日志",
+    "titleblacklist": "titleblacklist日志",
+    "upload": "上传日志"
 }
 
 LOG_ACTION_MAP = {
@@ -174,145 +174,6 @@ AF_RESULT_MAP = {
     "warn": "警告"
 }
 
-MESSAGE_TEMPLATES = {
-    "log": {
-        "upload": "（{magenta}上传日志{reset}）{time}，{user}对{title}执行了{action}操作，摘要为{comment}。",
-        "move": "（{magenta}移动日志{reset}）{time}，{user}移动页面{title}至{target_title}，摘要为{comment}。",
-        "renameuser": "（{magenta}用户更名日志{reset}）{time}，{user}重命名用户{olduser}为{newuser}，摘要为{comment}。",
-        "default": "（{magenta}{log_type}日志{reset}）{time}，{user}对{title}执行了{action}操作，摘要为{comment}。"
-    },
-    "edit": "{time}，{user}在{title}做出编辑，字节更改为{length_diff}，摘要为{comment}。",
-    "new": "{time}，{user}创建{title}，字节更改为{length_diff}，摘要为{comment}。"
-}
-
-TOAST_TEMPLATES = {
-    "log": {
-        "upload": "（上传日志）{user}对{title}执行了{action}操作，摘要为{comment}。",
-        "move": "（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。",
-        "renameuser": "（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。",
-        "default": "（{log_type}日志）{user}对{title}执行了{action}操作，摘要为{comment}。"
-    },
-    "edit": "{user}在{title}做出编辑，字节更改为{length_diff}，摘要为{comment}。",
-    "new": "{user}创建{title}，字节更改为{length_diff}，摘要为{comment}。"
-}
-
-def generate_rc_messages(data): # 最近更改：生成控制台消息和弹窗消息文本
-    base_params = {
-        "time": format_timestamp(data['timestamp']),
-        "user": data['user'],
-        "title": data['title'],
-        "comment": data['comment'],
-    }
-    if data['type'] == 'log' and data['logtype'] == 'move':
-        base_params["target_title"] = data['logparams']['target_title']
-    elif data['type'] == 'log' and data['logtype'] == 'renameuser':
-        base_params["olduser"] = data['logparams']['olduser']
-        base_params["newuser"] = data['logparams']['newuser']
-
-    console_params = base_params.copy()
-    console_params.update({
-        "user": format_user(base_params["user"]),
-        "title": f"{Colors.BLUE}{base_params['title']}{Colors.RESET}",
-        "comment": format_comment(base_params['comment']),
-        "magenta": Colors.MAGENTA,
-        "reset": Colors.RESET
-    })
-
-    toast_params = base_params.copy()
-    toast_params.update({
-        "comment": "（空）" if base_params['comment'] == "" else base_params['comment']
-    })
-
-    if data['type'] == 'log':
-        log_type = LOG_TYPE_MAP.get(data['logtype'], data['logtype'])
-        action = LOG_ACTION_MAP.get(data['logaction'], data['logaction'])
-
-        console_params.update({
-            "log_type": log_type,
-            "action": f"{Colors.MAGENTA}{action}{Colors.RESET}"
-        })
-        if data['logaction'] == 'move':
-            console_params.update({
-                "target_title": f"{Colors.BLUE}{console_params["target_title"]}{Colors.RESET}"
-            })
-        elif data['logaction'] == 'renameuser':
-            console_params.update({
-                "olduser": f"{Colors.BLUE}{console_params["olduser"]}{Colors.RESET}",
-                "newuser": f"{Colors.BLUE}{console_params["newuser"]}{Colors.RESET}"
-            })
-
-        template_key = data['logtype'] if data['logtype'] in MESSAGE_TEMPLATES["log"] else "default"
-        console_msg = MESSAGE_TEMPLATES["log"][template_key].format(**console_params)
-
-        toast_params.update({
-            "log_type": log_type,
-            "action": action
-        })
-        toast_msg = TOAST_TEMPLATES["log"][template_key].format(**toast_params)
-    else:
-        console_params["length_diff"] = f"{Colors.MAGENTA}{format_length_diff(data['newlen'], data['oldlen'])}{Colors.RESET}"
-        console_msg = MESSAGE_TEMPLATES[data['type']].format(**console_params)
-
-        toast_params["length_diff"] = format_length_diff(data['newlen'], data['oldlen'])
-        toast_msg = TOAST_TEMPLATES[data['type']].format(**toast_params)
-
-    return console_msg, toast_msg
-
-def generate_url(data): # 生成url
-    if data['type'] == 'log':
-        if data['logtype'] in ["upload", "move"]:  # 只有上传日志和移动日志具备有效revid值
-            return f"{WIKI_BASE_URL}/?diff={data['revid']}"
-        else:
-            return f"{WIKI_BASE_URL}/Special:%E6%97%A5%E5%BF%97/{data['logtype']}"
-    else:
-        return f"{WIKI_BASE_URL}/?diff={data['revid']}"
-
-def notification(msg_body,url): # 产生弹窗通知
-    toast = Notification(
-        app_id="Minecraft Wiki Admin Monitor",
-        title="",
-        msg=msg_body
-    )
-    toast.add_actions(label="打开网页", launch=url)
-    toast.show()
-    sound_play()
-
-def sound_play(): # 播放音效
-    try:
-        playsound(f"{SOUND_FILE}", block=False)
-    except PlaysoundException:
-        pass
-
-def format_timestamp(timestamp_str): # 将UTC时间改为UTC+8
-    time_part = timestamp_str[11:19]
-    hour = int(time_part[0:2])
-    hour = (hour + 8) % 24
-    return f"{Colors.CYAN}{hour:02d}{time_part[2:]}{Colors.RESET}"
-
-def format_comment(comment): # 摘要为空时输出（空）
-    return f"（空）" if comment == "" else f"{Colors.CYAN}{comment}{Colors.RESET}"
-
-def format_user(user): # 有巡查豁免权限的用户标记为绿色
-    return f"{Colors.GREEN}{user}{Colors.RESET}" if user in special_users else f"{Colors.BLUE}{user}{Colors.RESET}"
-
-def format_length_diff(newlen, oldlen): # 字节数变化输出和mw一致
-    diff = newlen - oldlen
-    return f"+{diff}" if diff > 0 else f"{diff}"
-
-def print_rc(new_data): # 处理最近更改数据
-    for data in new_data:
-        console_msg, toast_msg = generate_rc_messages(data)
-        url = generate_url(data)
-
-        print(console_msg)
-        print(f"（{Colors.YELLOW}{url}{Colors.RESET}）")
-        if data['type'] == "log" and data['logtype'] == "upload" and data['user'] not in special_users:
-            print(f"（特殊巡查：{WIKI_BASE_URL}/index.php?curid={data['pageid']}&action=markpatrolled&rcid={data['rcid']}）")
-        print("")
-
-        if data['user'] not in special_users: # 无巡查豁免权限用户执行操作才出现弹窗
-            notification(toast_msg, url)
-
 def call_api(params): # 从Mediawiki API获取数据
     tries = 0
     while True:
@@ -326,127 +187,196 @@ def call_api(params): # 从Mediawiki API获取数据
             if tries > 1:
                 break
 
-            current_time = datetime.now().strftime("%H:%M:%S")
-            print(f"（{current_time}）{Colors.RED}未获取到数据，20秒后重试。{Colors.RESET}", end='\n\n')
-            toast = Notification(
-                app_id="Minecraft Wiki Admin Monitor",
-                title="",
-                msg="未获取到数据，20秒后重试。"
-            )
-            toast.show()
-            sound_play()
+            print("未获取到数据，20秒后重试。", end='\n\n')
             time.sleep(20)
 
-    print(f"{Colors.RED}重试失败，请检查网络连接。{Colors.RESET}")
-    toast = Notification(
-        app_id="Minecraft Wiki Admin Monitor",
-        title="",
-        msg="重试失败，请检查网络连接。"
-    )
-    toast.show()
-    sound_play()
-    input("按任意键退出")
+    print("重试失败，请检查网络连接。")
+    input("按回车键退出")
     sys.exit(1)
 
-# 读取配置文件
+def print_rc(item): # 打印最近更改内容
+    timestamp = adjust_timestamp(item['timestamp'])
+    len_diff = adjust_length_diff(item['newlen'], item['oldlen'])
+    comment = adjust_comment(item['comment'])
+
+    if item['type'] == 'log':
+        print(f"（{LOG_TYPE_MAP.get(item['logtype'], item['logtype'])}）{timestamp}，{item['user']}对{item['title']}执行了{LOG_ACTION_MAP.get(item['logaction'], item['logaction'])}操作，摘要为{comment}。")
+        if item['revid'] != 0:
+            print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
+        else:
+            print(f"{WIKI_LOG_URL}{item['logtype']}", end='\n\n')
+
+    elif item['type'] == 'edit':
+        print(f"{timestamp}，{item['user']}在{item['title']}做出编辑，字节更改为{len_diff}，摘要为{comment}。")
+        print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
+
+    elif item['type'] == 'new':
+        print(f"{timestamp}，{item['user']}创建{item['title']}，字节更改为{len_diff}，摘要为{comment}。")
+        print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
+
+def print_afl(item): # 打印滥用日志内容
+    timestamp = adjust_timestamp(item['timestamp'])
+
+    print(f"{timestamp}，{item['user']}在{item['title']}执行操作{AF_ACTION_MAP.get(item['action'], item['action'])}时触发了过滤器{item['filter']}，采取的行动为{AF_RESULT_MAP.get(item['result'], item['result'])}。")
+    print(f"{WIKI_AFL_URL}{item['id']}", end='\n\n')
+
+def adjust_timestamp(timestamp_str): # 移除日期部分、调整时间戳至UTC+8
+    time_part = timestamp_str[11:19]
+    hour = int(time_part[0:2])
+    hour = (hour + 8) % 24
+    return f"{hour:02d}{time_part[2:]}"
+
+def adjust_comment(comment): # 摘要为空时输出（空）
+    return f"（空）" if comment == "" else comment
+
+def adjust_length_diff(newlen, oldlen): # 字节数变化输出和MediaWiki一致
+    diff = newlen - oldlen
+    return f"+{diff}" if diff > 0 else diff
+
+# 加载配置
 with open(CONFIG_FILE, "r") as config_file:
     config = json.load(config_file)
-    Access_token = config["Access_token"]
-    User_Agent = config["User_Agent"]
+    user_agent = config["user_agent"]
+    username = config["username"]
+    password = config["password"]
 
-# 获取巡查豁免权限用户列表
-try:
-    with open(SPECIAL_USERS_FILE, 'r', encoding='utf-8') as special_users_file:
-        special_users = set(json.load(special_users_file))
-except FileNotFoundError:
-    print("巡查豁免权限用户列表获取失败", end='\n\n')
-    special_users = set()
-
-# 创建带认证头的会话
+# 创建会话
 session = requests.Session()
-session.headers.update({
-    "Authorization": f"Bearer {Access_token}",
-    "User-Agent": User_Agent
-})
+session.headers.update({"User-Agent": user_agent})
 
-# 最近更改：不要获取机器人编辑，每次最多获取100个编辑
-rc_params = {
+# 获取登录令牌
+try:
+    login_token_response = session.get(WIKI_API_URL, params={
+        "action": "query",
+        "meta": "tokens",
+        "type": "login",
+        "format": "json"
+    })
+    login_token_response.raise_for_status()
+    login_token_data = login_token_response.json()
+    print("登录令牌获取成功")
+except Exception as e:
+    print("登录令牌获取异常：", e)
+    input("按回车键退出")
+    sys.exit(1)
+
+login_token = login_token_data['query']['tokens']['logintoken']
+
+# 登录
+try:
+    login_response = session.post(WIKI_API_URL, data={
+        "action": "login",
+        "lgname": username,
+        "lgpassword": password,
+        "lgtoken": login_token,
+        "format": "json"
+    })
+    login_response.raise_for_status()
+    login_data = login_response.json()
+except Exception as e:
+    print("登录请求异常：", e)
+    input("按回车键退出")
+    sys.exit(1)
+
+if login_data['login']['result'] == 'Success':
+    print("登录成功")
+else:
+    print("登录失败：", login_data['login'])
+    input("按回车键退出")
+    sys.exit(1)
+
+query_params = {
     "action": "query",
     "format": "json",
-    "list": "recentchanges",
-    "formatversion": "2",
-    "rcprop": "user|title|timestamp|ids|loginfo|sizes|comment",
+    "list": "recentchanges|abuselog",
+    "formatversion": 2,
+    "rcprop": "title|timestamp|ids|comment|user|loginfo|sizes",
     "rcshow": "!bot",
-    "rctype": "edit|new|log|external",
-    "rclimit": "100"
+    "rclimit": 100,
+    "rctype": "edit|new|log",
+    "afllimit": 100,
+    "aflprop": "ids|user|title|action|result|timestamp|revid|filter",
 }
 
-# 滥用日志：每次最多获取100条记录
-afl_params = {
-    "action": "query",
-    "format": "json",
-    "list": "abuselog",
-    "formatversion": "2",
-    "aflprop": "user|title|action|result|timestamp|revid|filter|ids",
-    "afllimit": "100"
-}
-
-# 给第一次循环准备对比数据
-initial_rc_params = rc_params.copy()
-initial_rc_params.update({
-    "rclimit": "1",
-    "rcprop": "timestamp|ids"
-})
-initial_rc_data = call_api(initial_rc_params)
-last_rc_timestamp = initial_rc_data['query']['recentchanges'][0]['timestamp']
-last_rcid = initial_rc_data['query']['recentchanges'][0]['rcid']
-
-initial_afl_params = afl_params.copy()
-initial_afl_params.update({
-    "afllimit": "1",
+# 准备初始数据
+initial_params = query_params.copy()
+initial_params.update({
+    "rcprop": "timestamp|ids",
+    "rclimit": 1,
+    "afllimit": 1,
     "aflprop": "ids|timestamp"
 })
-initial_afl_data = call_api(initial_afl_params)
-last_afl_timestamp = initial_afl_data['query']['abuselog'][0]['timestamp']
-last_afl_id = initial_afl_data['query']['abuselog'][0]['id']
+
+initial_data = call_api(initial_params)
+
+last_rc_timestamp = initial_data["query"]["recentchanges"][0]["timestamp"]
+last_rcid = initial_data["query"]["recentchanges"][0]["rcid"]
+last_afl_timestamp = initial_data["query"]["abuselog"][0]["timestamp"]
+last_afl_id = initial_data["query"]["abuselog"][0]["id"]
 
 print("启动成功", end='\n\n')
 
-while 1: # 主循环，每5秒获取一次最近更改和滥用日志数据
+# 主循环
+while True:
     time.sleep(5)
 
-    current_rc_params = rc_params.copy()
-    current_rc_params.update({"rcend": last_rc_timestamp})
-    current_rc_data = call_api(current_rc_params)
+    query_params.update({
+        "rcend": last_rc_timestamp,
+        "aflend": last_afl_timestamp
+    })
 
-    # 过滤出rcid大于last_rcid的新更改
+    current_data = call_api(query_params)
+
     new_rc_items = []
-    for rc_item in current_rc_data['query']['recentchanges']:
-        if rc_item['rcid'] > last_rcid:
+    for rc_item in reversed(current_data["query"]["recentchanges"]):
+        if rc_item["rcid"] > last_rcid:
             new_rc_items.append(rc_item)
 
-    current_afl_params = afl_params.copy()
-    current_afl_params.update({"aflend": last_afl_timestamp})
-    current_afl_data = call_api(current_afl_params)
-
-    # 过滤出id大于last_afl_id的新滥用日志
     new_afl_items = []
-    for afl_item in current_afl_data['query']['abuselog']:
-        if afl_item['id'] > last_afl_id:
+    for afl_item in reversed(current_data["query"]["abuselog"]):
+        if afl_item["id"] > last_afl_id:
             new_afl_items.append(afl_item)
 
-    if new_rc_items:
-        last_rc_timestamp = new_rc_items[0]['timestamp']
-        last_rcid = new_rc_items[0]['rcid']
+    is_new_rc = 0
+    is_new_afl = 0
 
-        new_rc_items = new_rc_items[::-1]
+    if new_rc_items:
+        is_new_rc = 1
+        last_rc_timestamp = new_rc_items[-1]['timestamp']
+        last_rcid = new_rc_items[-1]['rcid']
 
     if new_afl_items:
-        last_afl_timestamp = new_afl_items[0]['timestamp']
-        last_afl_id = new_afl_items[0]['id']
+        is_new_afl = 1
+        last_afl_timestamp = new_afl_items[-1]['timestamp']
+        last_afl_id = new_afl_items[-1]['id']
 
-        new_afl_items = new_afl_items[::-1]
+    # 调试打印内容：https://zh.minecraft.wiki/w/Special:API%E6%B2%99%E7%9B%92#action=query&format=json&list=recentchanges%7Cabuselog&formatversion=2&rcprop=title%7Ctimestamp%7Cids%7Ccomment%7Cuser%7Cloginfo%7Csizes&rcshow=!bot&rclimit=1&rctype=log%7Cedit%7Cnew&afllimit=1&aflprop=ids%7Cuser%7Ctitle%7Caction%7Cresult%7Ctimestamp%7Crevid%7Cfilter
+    if is_new_rc == 1 and is_new_afl == 0: # 仅最近更改
+        for rc_item in new_rc_items:
+            print_rc(rc_item)
 
-        # print_afl(new_afl_items)
+    elif is_new_rc == 0 and is_new_afl == 1: # 仅滥用日志
+        for afl_item in new_afl_items:
+            print_afl(afl_item)
 
-    print_rc(new_rc_items)
+    elif is_new_rc == 1 and is_new_afl == 1: # 同时存在最近更改和滥用日志
+        merged = []
+
+        for rc_item in new_rc_items:
+            merged.append({
+                "data": rc_item,
+                "ts": datetime.strptime(rc_item['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
+            })
+        for afl_item in new_afl_items:
+            merged.append({
+                "data": afl_item,
+                "ts": datetime.strptime(afl_item['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
+            })
+
+        merged.sort(key=lambda x: x['ts'])
+
+        for merged_item in merged:
+            if 'type' in merged_item['data']:
+                print_rc(merged_item['data'])
+            else:
+                print_afl(merged_item['data'])
