@@ -16,15 +16,6 @@ WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
 WIKI_LOG_URL = WIKI_BASE_URL + "Special:%E6%97%A5%E5%BF%97/"
 WIKI_AFL_URL = WIKI_BASE_URL + "Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97/"
 
-class Colors:
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    CYAN = '\033[96m'
-    MAGENTA = '\033[95m'
-    RESET = '\033[0m'
-
 LOG_TYPE_MAP = {
     "abusefilter": "滥用过滤器日志",
     "abusefilterblockeddomainhit": "被阻止的域名访问日志",
@@ -176,6 +167,22 @@ AF_RESULT_MAP = {
     "throttle": "频率控制",
     "warn": "警告"
 }
+
+AF_RESULT_ORDER_MAP = [
+    "blockautopromote,rangeblock,block",
+    "blockautopromote,rangeblock",
+    "blockautopromote,block",
+    "blockautopromote",
+    "rangeblock,block",
+    "rangeblock",
+    "block",
+    "disallow",
+    "throttle",
+    "degroup",
+    "warn"
+    "tag",
+    ""
+]
 
 def call_api(params): # 从Mediawiki API获取数据
     tries = 0
@@ -329,6 +336,7 @@ while True:
     })
 
     current_data = call_api(query_params)
+    # API默认返回的顺序是新的在前，旧的在后，所以需要反转
 
     new_rc_items = []
     for rc_item in reversed(current_data["query"]["recentchanges"]):
@@ -352,6 +360,37 @@ while True:
         is_new_afl = 1
         last_afl_timestamp = new_afl_items[-1]['timestamp']
         last_afl_id = new_afl_items[-1]['id']
+
+        # 合并单次操作产生的多个滥用日志项
+        merged_afl_items = []
+        # 仅检测用户、页面标题、时间戳是否一致
+        groups = {}
+        for afl_item in new_afl_items:
+            key = (afl_item["user"], afl_item["title"], afl_item["timestamp"])
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(afl_item)
+
+        for key, items in groups.items():
+            if len(items) == 1:
+                merged_afl_items.append(items[0])
+            else:
+                filters = [item["filter"] for item in items]
+                results = [item["result"] for item in items]
+
+                selected_result = ",".join(results)
+                for result in AF_RESULT_ORDER_MAP:
+                    if result in results:
+                        selected_result = result
+                        break
+
+                # 包含全部过滤器名称和最高级别的操作名称
+                merged_item = items[0].copy()
+                merged_item["filter"] = "、".join(filters)
+                merged_item["result"] = selected_result
+                merged_afl_items.append(merged_item)
+
+        new_afl_items = merged_afl_items
 
     # 调试打印内容：https://zh.minecraft.wiki/w/Special:API%E6%B2%99%E7%9B%92#action=query&format=json&list=recentchanges%7Cabuselog&formatversion=2&rcprop=title%7Ctimestamp%7Cids%7Ccomment%7Cuser%7Cloginfo%7Csizes&rcshow=!bot&rclimit=1&rctype=log%7Cedit%7Cnew&afllimit=1&aflprop=ids%7Cuser%7Ctitle%7Caction%7Cresult%7Ctimestamp%7Crevid%7Cfilter
     if is_new_rc == 1 and is_new_afl == 0: # 仅最近更改
