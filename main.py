@@ -3,6 +3,9 @@ import json
 import time
 import sys
 from datetime import datetime
+from playsound3 import playsound
+from playsound3.playsound3 import PlaysoundException
+from winotify import Notification
 
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
@@ -217,7 +220,7 @@ def print_rc(item): # 打印最近更改内容
 def print_afl(item): # 打印滥用日志内容
     timestamp = adjust_timestamp(item['timestamp'])
 
-    print(f"{timestamp}，{item['user']}在{item['title']}执行操作{AF_ACTION_MAP.get(item['action'], item['action'])}时触发了过滤器{item['filter']}，采取的行动为{AF_RESULT_MAP.get(item['result'], item['result'])}。")
+    print(f"{timestamp}，{item['user']}在{item['title']}执行操作“{AF_ACTION_MAP.get(item['action'], item['action'])}”时触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
     print(f"{WIKI_AFL_URL}{item['id']}", end='\n\n')
 
 def adjust_timestamp(timestamp_str): # 移除日期部分、调整时间戳至UTC+8
@@ -363,20 +366,14 @@ while True:
         merged = []
 
         for rc_item in new_rc_items:
-            merged.append({
-                "data": rc_item,
-                "ts": datetime.strptime(rc_item['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
-            })
+            merged.append(rc_item)
         for afl_item in new_afl_items:
-            merged.append({
-                "data": afl_item,
-                "ts": datetime.strptime(afl_item['timestamp'], "%Y-%m-%dT%H:%M:%SZ")
-            })
+            merged.append(afl_item)
 
-        merged.sort(key=lambda x: x['ts'])
+        merged.sort(key=lambda x: x['timestamp'])
 
         for merged_item in merged:
-            if 'type' in merged_item['data']:
-                print_rc(merged_item['data'])
+            if 'type' in merged_item:
+                print_rc(merged_item)
             else:
-                print_afl(merged_item['data'])
+                print_afl(merged_item)
