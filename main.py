@@ -266,7 +266,8 @@ def print_rc(item): # 打印最近更改内容
 
     console_str += f"{url}"
 
-    toast_notification(toast_str, "rc", url=url)
+    if user not in special_users or item['filter_id'] == 70: # 用户的编辑需要巡查，或者这是标记删除请求的编辑
+        toast_notification(toast_str, "rc", url=url)
     print(console_str)
 
 def print_afl(item): # 打印滥用日志内容
@@ -288,7 +289,8 @@ def print_afl(item): # 打印滥用日志内容
 
     console_str += f"{url}\n"
 
-    toast_notification(toast_str, "afl", url=url)
+    if user not in special_users:
+        toast_notification(toast_str, "afl", url=url)
     print(console_str)
 
 def adjust_timestamp(timestamp_str): # 移除日期部分、调整时间戳至UTC+8
@@ -313,6 +315,14 @@ with open(CONFIG_FILE, "r") as config_file:
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
     AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
     WARN_SOUND_FILE = config["WARN_SOUND_FILE"]
+
+# 获取巡查豁免权限用户列表
+try:
+    with open(SPECIAL_USERS_FILE, 'r', encoding='utf-8') as special_users_file:
+        special_users = set(json.load(special_users_file))
+except FileNotFoundError:
+    print("巡查豁免权限用户列表获取失败", end='\n\n')
+    special_users = set()
 
 # 创建会话
 session = requests.Session()
