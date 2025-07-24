@@ -3,8 +3,7 @@ import json
 import time
 import sys
 from datetime import datetime
-from playsound3 import playsound
-from playsound3.playsound3 import PlaysoundException
+from playsound3 import playsound, playsound3
 from winotify import Notification
 
 CONFIG_FILE = "config.json"
@@ -196,44 +195,101 @@ def call_api(params): # 从Mediawiki API获取数据
             if tries > 1:
                 break
 
-            print("未获取到数据，20秒后重试。", end='\n\n')
+            toast_notification("未获取到数据，20秒后重试。", "warn", False)
+            current_time = datetime.now()
+            print(f"（{current_time}）未获取到数据，20秒后重试。", end='\n\n')
             time.sleep(20)
 
-    print("重试失败，请检查网络连接。")
+    toast_notification("重试失败，请检查网络连接。", "warn", False)
+    current_time = datetime.now()
+    print(f"（{current_time}）重试失败，请检查网络连接。")
     input("按回车键退出")
     sys.exit(1)
 
+def toast_notification(msg_str, sound_type, add_button=True, url=""): # 播放音效并产生弹窗通知
+    try:
+        if sound_type == "rc":
+            playsound(RC_SOUND_FILE, block=False)
+        elif sound_type == "afl":
+            playsound(AFL_SOUND_FILE, block=False)
+        elif sound_type == "warn":
+            playsound(WARN_SOUND_FILE, block=False)
+    except playsound3.PlaysoundException:
+        pass
+
+    toast = Notification(
+        app_id="Minecraft Wiki Admin Monitor",
+        title="",
+        msg=msg_str
+    )
+    if add_button:
+        toast.add_actions(label="查看详情", launch=url)
+    toast.show()
+
 def print_rc(item): # 打印最近更改内容
-    timestamp = adjust_timestamp(item['timestamp'])
+    console_str = ""
+    toast_str = ""
+    type = item['type']
+    title = item['title']
+    revid = item['revid']
+    rcid = item['rcid']
+    user = item['user']
     len_diff = adjust_length_diff(item['newlen'], item['oldlen'])
+    timestamp = adjust_timestamp(item['timestamp'])
     comment = adjust_comment(item['comment'])
 
-    if item['type'] == 'log':
-        print(f"（{LOG_TYPE_MAP.get(item['logtype'], item['logtype'])}）{timestamp}，{item['user']}对{item['title']}执行了{LOG_ACTION_MAP.get(item['logaction'], item['logaction'])}操作，摘要为{comment}。")
-        if 'id' in item:
-            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
-        if item['revid'] != 0:
-            print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
-        else:
-            print(f"{WIKI_LOG_URL}{item['logtype']}", end='\n\n')
+    if type == 'log':
+        logtype = item['logtype']
+        logaction = item['logaction']
+        logtype_str = LOG_TYPE_MAP.get(logtype, logtype)
+        logaction_str = LOG_ACTION_MAP.get(logaction, logaction)
+        console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
+        toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
+    elif type == 'edit':
+        console_str += f"{timestamp}，{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。\n"
+        toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
+    elif type == 'new':
+        console_str += f"{timestamp}，{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。\n"
+        toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
 
-    elif item['type'] == 'edit':
-        print(f"{timestamp}，{item['user']}在{item['title']}做出编辑，字节更改为{len_diff}，摘要为{comment}。")
-        if 'id' in item:
-            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
-        print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
+    if 'id' in item:
+        result = item['result']
+        filter = item['filter']
+        result_str = AF_RESULT_MAP.get(result, result)
+        console_str += f"此操作触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
+        toast_str += f"\n此操作触发了过滤器：{filter}。"
 
-    elif item['type'] == 'new':
-        print(f"{timestamp}，{item['user']}创建{item['title']}，字节更改为{len_diff}，摘要为{comment}。")
-        if 'id' in item:
-            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
-        print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
+    if revid == 0:
+        url = f"{WIKI_LOG_URL}{item['logtype']}\n"
+    else:
+        url = f"{WIKI_DIFF_URL}{revid}\n"
+
+    console_str += f"{url}"
+
+    toast_notification(toast_str, "rc", url=url)
+    print(console_str)
 
 def print_afl(item): # 打印滥用日志内容
+    console_str = ""
+    toast_str = ""
+    id = item['id']
+    filter = item['filter']
+    user = item['user']
+    title = item['title']
+    action = item['action']
+    result = item['result']
     timestamp = adjust_timestamp(item['timestamp'])
+    action_str = AF_ACTION_MAP.get(action, action)
+    result_str = AF_RESULT_MAP.get(result, result)
+    url = f"{WIKI_AFL_URL}{id}"
 
-    print(f"{timestamp}，{item['user']}在{item['title']}执行操作“{AF_ACTION_MAP.get(item['action'], item['action'])}”时触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
-    print(f"{WIKI_AFL_URL}{item['id']}", end='\n\n')
+    console_str += f"{timestamp}，{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
+    toast_str += f"{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。"
+
+    console_str += f"{url}\n"
+
+    toast_notification(toast_str, "afl", url=url)
+    print(console_str)
 
 def adjust_timestamp(timestamp_str): # 移除日期部分、调整时间戳至UTC+8
     time_part = timestamp_str[11:19]
@@ -256,6 +312,7 @@ with open(CONFIG_FILE, "r") as config_file:
     password = config["password"]
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
     AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
+    WARN_SOUND_FILE = config["WARN_SOUND_FILE"]
 
 # 创建会话
 session = requests.Session()
