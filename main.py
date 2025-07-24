@@ -211,6 +211,8 @@ def print_rc(item): # 打印最近更改内容
 
     if item['type'] == 'log':
         print(f"（{LOG_TYPE_MAP.get(item['logtype'], item['logtype'])}）{timestamp}，{item['user']}对{item['title']}执行了{LOG_ACTION_MAP.get(item['logaction'], item['logaction'])}操作，摘要为{comment}。")
+        if 'id' in item:
+            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
         if item['revid'] != 0:
             print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
         else:
@@ -218,10 +220,14 @@ def print_rc(item): # 打印最近更改内容
 
     elif item['type'] == 'edit':
         print(f"{timestamp}，{item['user']}在{item['title']}做出编辑，字节更改为{len_diff}，摘要为{comment}。")
+        if 'id' in item:
+            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
         print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
 
     elif item['type'] == 'new':
         print(f"{timestamp}，{item['user']}创建{item['title']}，字节更改为{len_diff}，摘要为{comment}。")
+        if 'id' in item:
+            print(f"此操作触发了过滤器。采取的行动：{AF_RESULT_MAP.get(item['result'], item['result'])}；过滤器描述：{item['filter']}。")
         print(f"{WIKI_DIFF_URL}{item['revid']}", end='\n\n')
 
 def print_afl(item): # 打印滥用日志内容
@@ -411,7 +417,17 @@ while True:
 
         merged.sort(key=lambda x: x['timestamp'])
 
-        for merged_item in merged:
+        i = 1 # 第一项一定是最近更改，或者是没有对应最近更改的滥用日志
+        while i < len(merged): # 合并有对应最近更改的滥用日志至对应的最近更改项
+            item = merged[i]
+            if 'revid' in item and 'type' not in item: # 如果是滥用日志项且有revid（表示有对应的最近更改）
+                merged[i-1] = {**merged[i-1], **item}
+                # 移除已被合并的滥用日志项
+                merged.pop(i)
+                continue
+            i += 1
+
+        for merged_item in merged: # 最终输出
             if 'type' in merged_item:
                 print_rc(merged_item)
             else:
