@@ -9,12 +9,11 @@ from winotify import Notification
 
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
-SOUND_FILE = "sound.mp3"
 WIKI_BASE_URL = "https://zh.minecraft.wiki/"
 WIKI_API_URL = WIKI_BASE_URL + "api.php"
 WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
-WIKI_LOG_URL = WIKI_BASE_URL + "Special:%E6%97%A5%E5%BF%97/"
-WIKI_AFL_URL = WIKI_BASE_URL + "Special:%E6%BB%A5%E7%94%A8%E6%97%A5%E5%BF%97/"
+WIKI_LOG_URL = WIKI_BASE_URL + "Special:Log/"
+WIKI_AFL_URL = WIKI_BASE_URL + "Special:AbuseLog/"
 
 LOG_TYPE_MAP = {
     "abusefilter": "滥用过滤器日志",
@@ -255,6 +254,8 @@ with open(CONFIG_FILE, "r") as config_file:
     user_agent = config["user_agent"]
     username = config["username"]
     password = config["password"]
+    RC_SOUND_FILE = config["RC_SOUND_FILE"]
+    AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
 
 # 创建会话
 session = requests.Session()
@@ -332,10 +333,12 @@ last_afl_id = initial_data["query"]["abuselog"][0]["id"]
 
 print("启动成功", end='\n\n')
 
+time.sleep(5)
+interval = 5
+next_run = time.monotonic()
+
 # 主循环
 while True:
-    time.sleep(5)
-
     query_params.update({
         "rcend": last_rc_timestamp,
         "aflend": last_afl_timestamp
@@ -432,3 +435,9 @@ while True:
                 print_rc(merged_item)
             else:
                 print_afl(merged_item)
+
+    # 防止前面逻辑耗时过长，导致单次请求间隔超出5秒
+    next_run += interval
+    sleep_time = next_run - time.monotonic()
+    if sleep_time > 0:
+        time.sleep(sleep_time)
