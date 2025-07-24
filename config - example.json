@@ -1,5 +1,5 @@
 {
-    "user_agent": "你自己的名字和联系方式，如邮箱",
+    "user_agent": "",
     "username": "username@botpasswordname",
     "password": "randomstring",
     "RC_SOUND_FILE": "sound1.mp3",
