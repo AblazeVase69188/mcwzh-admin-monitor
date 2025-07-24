@@ -201,12 +201,12 @@ def call_api(params):  # 从Mediawiki API获取数据
                 break
 
             toast_notification("未获取到数据，20秒后重试。", "warn", False)
-            current_time = datetime.now()
+            current_time = datetime.now().strftime("%H:%M:%S")
             print(f"（{current_time}）未获取到数据，20秒后重试。", end='\n\n')
             time.sleep(20)
 
     toast_notification("重试失败，请检查网络连接。", "warn", False)
-    current_time = datetime.now()
+    current_time = datetime.now().strftime("%H:%M:%S")
     print(f"（{current_time}）重试失败，请检查网络连接。")
     input("按回车键退出")
     sys.exit(1)
