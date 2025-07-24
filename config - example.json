@@ -1,4 +1,7 @@
 {
-    "Access_token": "never114gonna514give1919you810up",
-    "User_Agent": "(换成你自己的名字和联系方式)"
+    "user_agent": "你自己的名字和联系方式，如邮箱",
+    "username": "username@botpasswordname",
+    "password": "randomstring",
+    "RC_SOUND_FILE": "sound1.mp3",
+    "AFL_SOUND_FILE": "sound2.mp3"
 }
