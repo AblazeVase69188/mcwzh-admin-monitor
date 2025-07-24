@@ -3,5 +3,6 @@
     "username": "username@botpasswordname",
     "password": "randomstring",
     "RC_SOUND_FILE": "sound1.mp3",
-    "AFL_SOUND_FILE": "sound2.mp3"
+    "AFL_SOUND_FILE": "sound2.mp3",
+    "WARN_SOUND_FILE": "sound3.mp3"
 }
