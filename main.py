@@ -232,7 +232,6 @@ def print_rc(item): # 打印最近更改内容
     type = item['type']
     title = item['title']
     revid = item['revid']
-    rcid = item['rcid']
     user = item['user']
     len_diff = adjust_length_diff(item['newlen'], item['oldlen'])
     timestamp = adjust_timestamp(item['timestamp'])
@@ -243,8 +242,18 @@ def print_rc(item): # 打印最近更改内容
         logaction = item['logaction']
         logtype_str = LOG_TYPE_MAP.get(logtype, logtype)
         logaction_str = LOG_ACTION_MAP.get(logaction, logaction)
-        console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
-        toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
+        if logtype == 'move':
+            target_title = item['logparams']['target_title']
+            console_str += f"（移动日志）{timestamp}，{user}移动页面{title}至{target_title}，摘要为{comment}。\n"
+            toast_str += f"（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。"
+        elif logtype == 'renameuser':
+            olduser = item['logparams']['olduser']
+            newuser = item['logparams']['newuser']
+            console_str += f"（用户更名日志）{timestamp}，{user}重命名用户{olduser}为{newuser}，摘要为{comment}。\n"
+            toast_str += f"（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。"
+        else:
+            console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
+            toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
     elif type == 'edit':
         console_str += f"{timestamp}，{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。\n"
         toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
@@ -260,13 +269,16 @@ def print_rc(item): # 打印最近更改内容
         toast_str += f"\n此操作触发了过滤器：{filter}。"
 
     if revid == 0:
-        url = f"{WIKI_LOG_URL}{item['logtype']}\n"
+        url = f"{WIKI_LOG_URL}{item['logtype']}"
     else:
-        url = f"{WIKI_DIFF_URL}{revid}\n"
+        url = f"{WIKI_DIFF_URL}{revid}"
 
-    console_str += f"{url}"
+    console_str += f"{url}\n"
 
-    if user not in special_users or item['filter_id'] == 70: # 用户的编辑需要巡查，或者这是标记删除请求的编辑
+    if type == 'log' and logtype == 'upload':
+        console_str += f"特殊巡查：{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}\n"
+
+    if user not in special_users or item.get('filter_id') == 70: # 用户的编辑需要巡查，或者这是标记删除请求的编辑
         toast_notification(toast_str, "rc", url=url)
     print(console_str)
 
