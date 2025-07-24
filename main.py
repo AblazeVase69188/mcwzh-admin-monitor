@@ -1,10 +1,13 @@
-import requests
 import json
-import time
 import sys
+import time
 from datetime import datetime
-from playsound3 import playsound, playsound3
+
+import requests
+from playsound3 import playsound
+from playsound3.playsound3 import PlaysoundException
 from winotify import Notification
+
 
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
@@ -182,15 +185,17 @@ AF_RESULT_ORDER_MAP = [
     ""
 ]
 
-def call_api(params): # 从Mediawiki API获取数据
+
+def call_api(params):  # 从Mediawiki API获取数据
     tries = 0
     while True:
         try:
-            # 发送API请求
+            # 向API发送请求
             response = session.post(WIKI_API_URL, data=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
+            # 获取数据失败后只重试一次
             tries += 1
             if tries > 1:
                 break
@@ -206,7 +211,8 @@ def call_api(params): # 从Mediawiki API获取数据
     input("按回车键退出")
     sys.exit(1)
 
-def toast_notification(msg_str, sound_type, add_button=True, url=""): # 播放音效并产生弹窗通知
+
+def toast_notification(msg_str, sound_type, add_button=True, url=""):  # 播放音效并产生弹窗通知
     try:
         if sound_type == "rc":
             playsound(RC_SOUND_FILE, block=False)
@@ -214,7 +220,7 @@ def toast_notification(msg_str, sound_type, add_button=True, url=""): # 播放�
             playsound(AFL_SOUND_FILE, block=False)
         elif sound_type == "warn":
             playsound(WARN_SOUND_FILE, block=False)
-    except playsound3.PlaysoundException:
+    except PlaysoundException:
         pass
 
     toast = Notification(
@@ -226,7 +232,8 @@ def toast_notification(msg_str, sound_type, add_button=True, url=""): # 播放�
         toast.add_actions(label="查看详情", launch=url)
     toast.show()
 
-def print_rc(item): # 打印最近更改内容
+
+def print_rc(item):  # 打印最近更改内容
     console_str = ""
     toast_str = ""
     type = item['type']
@@ -261,6 +268,7 @@ def print_rc(item): # 打印最近更改内容
         console_str += f"{timestamp}，{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。\n"
         toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
 
+    # 合并了滥用日志的最近更改项
     if 'id' in item:
         result = item['result']
         filter = item['filter']
@@ -275,14 +283,16 @@ def print_rc(item): # 打印最近更改内容
 
     console_str += f"{url}\n"
 
+    # 无巡查豁免权限的用户上传单个文件的多个版本时，需要此种特殊巡查方式
     if type == 'log' and logtype == 'upload':
         console_str += f"特殊巡查：{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}\n"
 
-    if user not in special_users or item.get('filter_id') == 70: # 用户的编辑需要巡查，或者这是标记删除请求的编辑
+    if user not in special_users or item.get('filter_id') == 70:  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
         toast_notification(toast_str, "rc", url=url)
     print(console_str)
 
-def print_afl(item): # 打印滥用日志内容
+
+def print_afl(item):  # 打印滥用日志内容
     console_str = ""
     toast_str = ""
     id = item['id']
@@ -305,18 +315,22 @@ def print_afl(item): # 打印滥用日志内容
         toast_notification(toast_str, "afl", url=url)
     print(console_str)
 
-def adjust_timestamp(timestamp_str): # 移除日期部分、调整时间戳至UTC+8
+
+def adjust_timestamp(timestamp_str):  # 移除日期部分、调整时间戳至UTC+8
     time_part = timestamp_str[11:19]
     hour = int(time_part[0:2])
     hour = (hour + 8) % 24
     return f"{hour:02d}{time_part[2:]}"
 
-def adjust_comment(comment): # 摘要为空时输出（空）
+
+def adjust_comment(comment):  # 摘要为空时输出（空）
     return f"（空）" if comment == "" else comment
 
-def adjust_length_diff(newlen, oldlen): # 字节数变化输出和MediaWiki一致
+
+def adjust_length_diff(newlen, oldlen):  # 字节数变化输出和MediaWiki一致
     diff = newlen - oldlen
     return f"+{diff}" if diff > 0 else diff
+
 
 # 加载配置
 with open(CONFIG_FILE, "r") as config_file:
@@ -381,6 +395,7 @@ else:
     input("按回车键退出")
     sys.exit(1)
 
+# 基础查询参数
 query_params = {
     "action": "query",
     "format": "json",
@@ -480,16 +495,16 @@ while True:
 
         new_afl_items = merged_afl_items
 
-    # 调试打印内容：https://zh.minecraft.wiki/w/Special:API%E6%B2%99%E7%9B%92#action=query&format=json&list=recentchanges%7Cabuselog&formatversion=2&rcprop=title%7Ctimestamp%7Cids%7Ccomment%7Cuser%7Cloginfo%7Csizes&rcshow=!bot&rclimit=1&rctype=log%7Cedit%7Cnew&afllimit=1&aflprop=ids%7Cuser%7Ctitle%7Caction%7Cresult%7Ctimestamp%7Crevid%7Cfilter
-    if is_new_rc == 1 and is_new_afl == 0: # 仅最近更改
+    # 输出内容
+    if is_new_rc == 1 and is_new_afl == 0:  # 仅最近更改
         for rc_item in new_rc_items:
             print_rc(rc_item)
 
-    elif is_new_rc == 0 and is_new_afl == 1: # 仅滥用日志
+    elif is_new_rc == 0 and is_new_afl == 1:  # 仅滥用日志
         for afl_item in new_afl_items:
             print_afl(afl_item)
 
-    elif is_new_rc == 1 and is_new_afl == 1: # 同时存在最近更改和滥用日志
+    elif is_new_rc == 1 and is_new_afl == 1:  # 同时存在最近更改和滥用日志
         merged = []
 
         for rc_item in new_rc_items:
@@ -499,17 +514,17 @@ while True:
 
         merged.sort(key=lambda x: x['timestamp'])
 
-        i = 1 # 第一项一定是最近更改，或者是没有对应最近更改的滥用日志
-        while i < len(merged): # 合并有对应最近更改的滥用日志至对应的最近更改项
+        i = 1  # 第一项一定是最近更改，或者是没有对应最近更改的滥用日志
+        while i < len(merged):  # 合并有对应最近更改的滥用日志至对应的最近更改项
             item = merged[i]
-            if 'revid' in item and 'type' not in item: # 如果是滥用日志项且有revid（表示有对应的最近更改）
-                merged[i-1] = {**merged[i-1], **item}
+            if 'revid' in item and 'type' not in item:  # 如果是滥用日志项且有revid（表示有对应的最近更改）
+                merged[i - 1] = {**merged[i - 1], **item}
                 # 移除已被合并的滥用日志项
                 merged.pop(i)
                 continue
             i += 1
 
-        for merged_item in merged: # 最终输出
+        for merged_item in merged:  # 最终输出
             if 'type' in merged_item:
                 print_rc(merged_item)
             else:
