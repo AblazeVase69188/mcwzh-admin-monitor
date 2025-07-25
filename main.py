@@ -287,7 +287,7 @@ def print_rc(item):  # 打印最近更改内容
     if type == 'log' and logtype == 'upload':
         console_str += f"特殊巡查：{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}\n"
 
-    if user not in special_users or item.get('filter_id') == 70:  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
+    if user not in special_users or item.get('filter_id') == "70":  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
         toast_notification(toast_str, "rc", url=url)
     print(console_str)
 
