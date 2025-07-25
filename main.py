@@ -67,7 +67,7 @@ LOG_ACTION_MAP = {
     "change": "内容模型的更改",
     "new": "使用非默认内容模型创建页面",
     # create
-    '''"create": "",'''
+    # "create": "",
     # delete
     "delete": "删除",
     "delete_redir": "通过覆盖删除重定向",
@@ -80,20 +80,20 @@ LOG_ACTION_MAP = {
     "gblock": "全域封禁",
     "gblock2": "gblock2",
     "gunblock": "全域解封",
-    '''"modify": "全域封禁修改",'''
+    # "modify": "全域封禁修改",
     "whitelist": "全域封禁白名单添加",
     # gblrights
-    '''"rights": "",'''
+    # "rights": "",
     # gloopcontrol（仅包含*）
     # import
     "interwiki": "跨wiki导入",
-    '''"upload": "通过XML上传导入",'''
+    # "upload": "通过XML上传导入",
     # interwiki（仅包含*）
     # managetags
     "activate": "标签激活",
-    '''"create": "标签创建",'''
+    # "create": "标签创建",
     "deactivate": "标签取消激活",
-    '''"delete": "标签删除",'''
+    # "delete": "标签删除",
     # merge
     "merge": "合并页面历史",
     # move
@@ -102,7 +102,7 @@ LOG_ACTION_MAP = {
     # newusers
     "autocreate": "自动创建账号",
     "byemail": "创建账号并且密码已通过电子邮件发送",
-    '''"create": "匿名用户创建账号",'''
+    # "create": "匿名用户创建账号",
     "create2": "注册用户创建账号",
     "migrated": "迁移账号",
     "newusers": "newusers",
@@ -111,7 +111,7 @@ LOG_ACTION_MAP = {
     "autopatrol": "自动标记页面版本为已巡查",
     "patrol": "标记页面版本为已巡查",
     # protect
-    '''"modify": "更改保护设定",'''
+    # "modify": "更改保护设定",
     "move_prot": "移动保护设置",
     "protect": "保护",
     "unprotect": "移除保护",
@@ -124,12 +124,12 @@ LOG_ACTION_MAP = {
     "rights": "更改用户组",
     # spamblacklist（仅包含*）
     # suppress
-    '''"block": "",'''
-    '''"delete": "",'''
-    '''"event": "",'''
+    # "block": "",
+    # "delete": "",
+    # "event": "",
     "hide-afl": "hide-afl",
-    '''"reblock": "",'''
-    '''"revision": "",'''
+    # "reblock": "",
+    # "revision": "",
     "unhide-afl": "unhide-afl",
     # tag
     "update": "向修订版本添加标签",
