@@ -522,6 +522,12 @@ while True:
                 # 移除已被合并的滥用日志项
                 merged.pop(i)
                 continue
+            if item.get('action') == 'createaccount':  # 特判，目前能触发滥用过滤器的非编辑操作只有createaccount
+                if merged[i - 1].get('logtype') == "newusers" and merged[i - 1]['user'] == item['user'] and merged[i - 1]['timestamp'] == item['timestamp']:  # 有对应最近更改项：为用户创建日志、用户名一致、（不能保证）时间戳一致
+                    merged[i - 1] = {**merged[i - 1], **item}
+                    # 移除已被合并的滥用日志项
+                    merged.pop(i)
+                    continue
             i += 1
 
         for merged_item in merged:  # 最终输出
