@@ -4,7 +4,7 @@
 The program automatically gets new content in RecentChanges and AbuseLogs of the Chinese Minecraft Wiki.
 
 ## 用途
-每5秒尝试获取一次中文Minecraft Wiki最近更改和滥用日志的变化情况，新更改内容在Windows终端输出。如果是无巡查豁免权限的用户产生的，或是触发了70号过滤器“标记删除请求”，还会产生通知弹窗并播放音效。
+每过一段时间尝试获取一次中文Minecraft Wiki最近更改和滥用日志的变化情况，新更改内容在Windows终端输出。如果是无巡查豁免权限的用户产生的，或是触发了70号过滤器“标记删除请求”，还会产生通知弹窗并播放音效。
 
 程序会将单次操作产生的多个滥用日志项合并输出。程序会将对应的最近更改和滥用日志合并输出。
 
@@ -18,6 +18,7 @@ The program automatically gets new content in RecentChanges and AbuseLogs of the
 ## 使用方法
 程序需要同目录存在`config.json`才能正常运作：
 * 请自行按[MediaWiki文档要求](https://www.mediawiki.org/wiki/API:Etiquette#The_User-Agent_header)填写用户代理`user_agent`。
+* 请根据自身需求设定发送API请求的间隔`interval`。
 * 在这之前你应该需要先在[[Special:机器人密码]]创建一个机器人并获得密码，然后填入`username`和`password`。
 * `RC_SOUND_FILE`、`AFL_SOUND_FILE`和`WARN_SOUND_FILE`用于指定产生弹窗时播放什么音效，这三项对应最近更改、滥用日志和程序的警告信息。可以是同目录下文件名或完整文件路径（JSON要求对反斜杠转义，不过也是可以正常解析路径的）。这些项为选填，不填就不会播放音效。
 
@@ -25,8 +26,9 @@ The program automatically gets new content in RecentChanges and AbuseLogs of the
 
 ## 注意事项
 * 在中文Minecraft Wiki，只有巡查员及以上用户才能查询滥用日志。无此权限的用户请改为使用[mcwzh-rc-monitor](https://github.com/AblazeVase69188/mcwzh-rc-monitor)。
+* 建议API请求间隔不小于3秒，不大于60秒。
+* 单次请求的最大数据量视账号是否有`apihighlimits`权限而定，如果有则为5000条，没有则为500条。
 * 程序仅在Windows 11上可用（其实只是我没在Windows 10上面测试过而已）。
-* 如果5秒内的最近更改新内容大于100条 ~~（应该不会这么多，CATS点两下才100条）~~，程序只会处理最新的100条。
 
 ## 授权协议
 程序采用与Minecraft Wiki相同的CC BY-NC-SA 3.0协议授权。
