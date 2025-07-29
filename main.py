@@ -529,18 +529,25 @@ while True:
         i = 1  # 第一项一定是最近更改，或者是没有对应最近更改的滥用日志
         while i < len(merged):  # 合并有对应最近更改的滥用日志至对应的最近更改项
             item = merged[i]
+            can_merge = False
             if 'revid' in item and 'type' not in item:  # 如果是滥用日志项且有revid（表示有对应的最近更改）
+                can_merge = True
+            elif item.get('action') == 'createaccount':  # 特判，目前能触发滥用过滤器的非编辑操作只有createaccount
+                if merged[i - 1].get('logtype') == "newusers" and merged[i - 1]['user'] == item['user'] and \
+                        merged[i - 1]['timestamp'] == item['timestamp']:  # 有对应最近更改项：为用户创建日志、用户名一致、（不能保证）时间戳一致
+                    can_merge = True
+            elif item.get('action') in ['upload', 'stashupload']:  # 特判，upload和stashupload产生的滥用日志不含revid值
+                if merged[i - 1].get('logtype') == "upload" and merged[i - 1]['title'] == item['title'] and \
+                        merged[i - 1]['user'] == item['user'] and merged[i - 1]['timestamp'] == item[
+                    'timestamp']:  # 有对应最近更改项：为上传日志、文件名一致、用户名一致、（不能保证）时间戳一致
+                    can_merge = True
+
+            if can_merge:
                 merged[i - 1] = {**merged[i - 1], **item}
                 # 移除已被合并的滥用日志项
                 merged.pop(i)
-                continue
-            if item.get('action') == 'createaccount':  # 特判，目前能触发滥用过滤器的非编辑操作只有createaccount
-                if merged[i - 1].get('logtype') == "newusers" and merged[i - 1]['user'] == item['user'] and merged[i - 1]['timestamp'] == item['timestamp']:  # 有对应最近更改项：为用户创建日志、用户名一致、（不能保证）时间戳一致
-                    merged[i - 1] = {**merged[i - 1], **item}
-                    # 移除已被合并的滥用日志项
-                    merged.pop(i)
-                    continue
-            i += 1
+            else:
+                i += 1
 
         for merged_item in merged:  # 最终输出
             if 'type' in merged_item:
