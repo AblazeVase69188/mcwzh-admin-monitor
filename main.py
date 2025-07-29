@@ -250,44 +250,58 @@ def print_rc(item):  # 打印最近更改内容
         logaction_str = LOG_ACTION_MAP.get(logaction, logaction)
         if logtype == 'move':
             target_title = item['logparams']['target_title']
-            console_str += f"（移动日志）{timestamp}，{user}移动页面{title}至{target_title}，摘要为{comment}。\n"
-            toast_str += f"（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。"
         elif logtype == 'renameuser':
             olduser = item['logparams']['olduser']
             newuser = item['logparams']['newuser']
-            console_str += f"（用户更名日志）{timestamp}，{user}重命名用户{olduser}为{newuser}，摘要为{comment}。\n"
-            toast_str += f"（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。"
-        else:
-            console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
-            toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
-    elif type == 'edit':
-        console_str += f"{timestamp}，{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。\n"
-        toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
-    elif type == 'new':
-        console_str += f"{timestamp}，{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。\n"
-        toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
 
     # 合并了滥用日志的最近更改项
     if 'id' in item:
         result = item['result']
         filter = item['filter']
         result_str = AF_RESULT_MAP.get(result, result)
-        console_str += f"此操作触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
-        toast_str += f"\n此操作触发了过滤器：{filter}。"
 
     if revid == 0:
         url = f"{WIKI_LOG_URL}{item['logtype']}"
     else:
         url = f"{WIKI_DIFF_URL}{revid}"
 
-    console_str += f"{url}\n"
+    # 构造弹窗消息并产生弹窗
+    if type == 'log':
+        if logtype == 'move':
+            toast_str += f"（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。"
+        elif logtype == 'renameuser':
+            toast_str += f"（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。"
+        else:
+            toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
+    elif type == 'edit':
+        toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
+    elif type == 'new':
+        toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
+    if 'id' in item:
+        toast_str += f"\n此操作触发了过滤器：{filter}。"
 
+    if user not in special_users or item.get('filter_id') == "70":  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
+        toast_notification(toast_str, "rc", url=url)
+
+    # 构造控制台消息并输出
+    if type == 'log':
+        if logtype == 'move':
+            console_str += f"（移动日志）{timestamp}，{user}移动页面{title}至{target_title}，摘要为{comment}。\n"
+        elif logtype == 'renameuser':
+            console_str += f"（用户更名日志）{timestamp}，{user}重命名用户{olduser}为{newuser}，摘要为{comment}。\n"
+        else:
+            console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
+    elif type == 'edit':
+        console_str += f"{timestamp}，{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。\n"
+    elif type == 'new':
+        console_str += f"{timestamp}，{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。\n"
+    if 'id' in item:
+        console_str += f"此操作触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
+    console_str += f"{url}\n"
     # 无巡查豁免权限的用户上传单个文件的多个版本时，需要此种特殊巡查方式
     if type == 'log' and logtype == 'upload':
         console_str += f"特殊巡查：{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}\n"
 
-    if user not in special_users or item.get('filter_id') == "70":  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
-        toast_notification(toast_str, "rc", url=url)
     print(console_str)
 
 
@@ -305,13 +319,12 @@ def print_afl(item):  # 打印滥用日志内容
     result_str = AF_RESULT_MAP.get(result, result)
     url = f"{WIKI_AFL_URL}{id}"
 
-    console_str += f"{timestamp}，{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
     toast_str += f"{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。"
-
-    console_str += f"{url}\n"
-
     if user not in special_users:
         toast_notification(toast_str, "afl", url=url)
+
+    console_str += f"{timestamp}，{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
+    console_str += f"{url}\n"
     print(console_str)
 
 
@@ -535,7 +548,7 @@ while True:
             else:
                 print_afl(merged_item)
 
-    # 防止前面逻辑耗时过长，导致单次请求间隔超出5秒
+    # 防止前面逻辑耗时过长，导致单次请求间隔超出设定时间
     next_run += interval
     sleep_time = next_run - time.monotonic()
     if sleep_time > 0:
