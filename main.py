@@ -8,7 +8,6 @@ from playsound3 import playsound
 from playsound3.playsound3 import PlaysoundException
 from winotify import Notification
 
-
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
 WIKI_BASE_URL = "https://zh.minecraft.wiki/"
@@ -191,7 +190,7 @@ def call_api(params):  # 从Mediawiki API获取数据
     while True:
         try:
             # 向API发送请求
-            response = session.post(WIKI_API_URL, data=params)
+            response = session.post(WIKI_API_URL, data=params, timeout=3)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
@@ -336,6 +335,7 @@ def adjust_length_diff(newlen, oldlen):  # 字节数变化输出和MediaWiki一�
 with open(CONFIG_FILE, "r") as config_file:
     config = json.load(config_file)
     user_agent = config["user_agent"]
+    interval = float(config["interval"])
     username = config["username"]
     password = config["password"]
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
@@ -361,7 +361,7 @@ try:
         "meta": "tokens",
         "type": "login",
         "format": "json"
-    })
+    }, timeout=3)
     login_token_response.raise_for_status()
     login_token_data = login_token_response.json()
     print("登录令牌获取成功")
@@ -380,7 +380,7 @@ try:
         "lgpassword": password,
         "lgtoken": login_token,
         "format": "json"
-    })
+    }, timeout=3)
     login_response.raise_for_status()
     login_data = login_response.json()
 except Exception as e:
@@ -403,9 +403,9 @@ query_params = {
     "formatversion": 2,
     "rcprop": "title|timestamp|ids|comment|user|loginfo|sizes",
     "rcshow": "!bot",
-    "rclimit": 100,
+    "rclimit": "max",
     "rctype": "edit|new|log",
-    "afllimit": 100,
+    "afllimit": "max",
     "aflprop": "ids|user|title|action|result|timestamp|revid|filter",
 }
 
@@ -427,8 +427,7 @@ last_afl_id = initial_data["query"]["abuselog"][0]["id"]
 
 print("启动成功", end='\n\n')
 
-time.sleep(5)
-interval = 5
+time.sleep(interval)
 next_run = time.monotonic()
 
 # 主循环
