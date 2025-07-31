@@ -190,7 +190,7 @@ def call_api(params):  # 从Mediawiki API获取数据
     while True:
         try:
             # 向API发送请求
-            response = session.post(WIKI_API_URL, data=params, timeout=3)
+            response = session.post(WIKI_API_URL, data=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
@@ -374,7 +374,7 @@ try:
         "meta": "tokens",
         "type": "login",
         "format": "json"
-    }, timeout=3)
+    })
     login_token_response.raise_for_status()
     login_token_data = login_token_response.json()
     print("登录令牌获取成功")
@@ -393,7 +393,7 @@ try:
         "lgpassword": password,
         "lgtoken": login_token,
         "format": "json"
-    }, timeout=3)
+    })
     login_response.raise_for_status()
     login_data = login_response.json()
 except Exception as e:
