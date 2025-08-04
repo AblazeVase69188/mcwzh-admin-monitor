@@ -28,6 +28,7 @@ The program automatically gets new content in RecentChanges and AbuseLogs of the
 * 在中文Minecraft Wiki，只有巡查员及以上用户才能查询滥用日志。无此权限的用户请改为使用[mcwzh-rc-monitor](https://github.com/AblazeVase69188/mcwzh-rc-monitor)。
 * 建议API请求间隔不小于3秒，不大于60秒。
 * 单次请求的最大数据量视账号是否有`apihighlimits`权限而定，如果有则为5000条，没有则为500条。
+* 受MediaWiki限制，编辑操作和其触发的滥用日志的时间戳并不总是相同，因此滥用日志和最近更改的合并功能可能无法运作。
 * 程序仅在Windows 11上可用（其实只是我没在Windows 10上面测试过而已）。
 
 ## 授权协议
