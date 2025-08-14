@@ -367,6 +367,34 @@ except FileNotFoundError:
 session = requests.Session()
 session.headers.update({"User-Agent": user_agent})
 
+# 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
+parse_response = session.get(WIKI_API_URL, params={
+    "action": "parse",
+    "format": "json",
+    "page": "箱子战利品（物品索引）",
+    "prop": "encodedjsconfigvars",
+    "formatversion": 2,
+})
+parse_response.raise_for_status()
+parse_data = parse_response.json()
+
+encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
+if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
+    print("脚本运行超时，正在刷新中")
+
+    purge_response = session.post(WIKI_API_URL, data={
+        "action": "purge",
+        "format": "json",
+        "titles": "箱子战利品（物品索引）",
+        "formatversion": 2,
+    })
+    purge_response.raise_for_status()
+    purge_result = purge_response.json()
+    if purge_result["purge"][0]["purged"] == True:
+        print("刷新成功")
+    else:
+        print("刷新失败")
+
 # 获取登录令牌
 try:
     login_token_response = session.get(WIKI_API_URL, params={
@@ -379,6 +407,7 @@ try:
     login_token_data = login_token_response.json()
     print("登录令牌获取成功")
 except Exception as e:
+    toast_notification(f"登录令牌获取异常：{e}", "warn", False)
     print("登录令牌获取异常：", e)
     input("按回车键退出")
     sys.exit(1)
@@ -397,6 +426,7 @@ try:
     login_response.raise_for_status()
     login_data = login_response.json()
 except Exception as e:
+    toast_notification(f"登录请求异常：{e}", "warn", False)
     print("登录请求异常：", e)
     input("按回车键退出")
     sys.exit(1)
@@ -404,6 +434,7 @@ except Exception as e:
 if login_data['login']['result'] == 'Success':
     print("登录成功")
 else:
+    toast_notification(f"登录失败：{login_data['login']}", "warn", False)
     print("登录失败：", login_data['login'])
     input("按回车键退出")
     sys.exit(1)
@@ -530,16 +561,23 @@ while True:
         while i < len(merged):  # 合并有对应最近更改的滥用日志至对应的最近更改项
             item = merged[i]
             can_merge = False
-            if 'revid' in item and 'type' not in item:  # 如果是滥用日志项且有revid（表示有对应的最近更改）
+            # 如果是滥用日志项且有revid（表示有对应的最近更改）
+            if 'revid' in item and 'type' not in item:
                 can_merge = True
-            elif item.get('action') == 'createaccount':  # 特判，目前能触发滥用过滤器的非编辑操作只有createaccount
-                if merged[i - 1].get('logtype') == "newusers" and merged[i - 1]['user'] == item['user'] and \
-                        merged[i - 1]['timestamp'] == item['timestamp']:  # 有对应最近更改项：为用户创建日志、用户名一致、（不能保证）时间戳一致
+            # 对createaccount操作的特判
+            elif item.get('action') == 'createaccount':
+                # 有对应最近更改项：为用户创建日志、用户名一致、（不能保证）时间戳一致
+                if (merged[i - 1].get('logtype') == "newusers"
+                        and merged[i - 1]['user'] == item['user']
+                        and merged[i - 1]['timestamp'] == item['timestamp']):
                     can_merge = True
-            elif item.get('action') in ['upload', 'stashupload']:  # 特判，upload和stashupload产生的滥用日志不含revid值
-                if merged[i - 1].get('logtype') == "upload" and merged[i - 1]['title'] == item['title'] and \
-                        merged[i - 1]['user'] == item['user'] and merged[i - 1]['timestamp'] == item[
-                    'timestamp']:  # 有对应最近更改项：为上传日志、文件名一致、用户名一致、（不能保证）时间戳一致
+            # 对upload和stashupload操作的特判
+            elif item.get('action') in ['upload', 'stashupload']:
+                # 有对应最近更改项：为上传日志、文件名一致、用户名一致、（不能保证）时间戳一致
+                if (merged[i - 1].get('logtype') == "upload"
+                        and merged[i - 1]['title'] == item['title']
+                        and merged[i - 1]['user'] == item['user']
+                        and merged[i - 1]['timestamp'] == item['timestamp']):
                     can_merge = True
 
             if can_merge:
