@@ -380,7 +380,7 @@ parse_data = parse_response.json()
 
 encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
 if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
-    print("脚本运行超时，正在刷新中")
+    print("“箱子战利品（物品索引）”出现脚本运行超时，正在刷新中")
 
     purge_response = session.post(WIKI_API_URL, data={
         "action": "purge",
@@ -391,9 +391,9 @@ if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"Scribunt
     purge_response.raise_for_status()
     purge_result = purge_response.json()
     if purge_result["purge"][0]["purged"] == True:
-        print("刷新成功")
+        print("“箱子战利品（物品索引）”刷新成功")
     else:
-        print("刷新失败")
+        print("“箱子战利品（物品索引）”刷新失败")
 
 # 获取登录令牌
 try:
