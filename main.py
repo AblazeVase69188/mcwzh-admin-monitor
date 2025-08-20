@@ -190,7 +190,7 @@ def call_api(params):  # 从Mediawiki API获取数据
     while True:
         try:
             # 向API发送请求
-            response = session.post(WIKI_API_URL, data=params)
+            response = session.get(WIKI_API_URL, params=params)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException:
