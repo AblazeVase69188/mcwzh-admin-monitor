@@ -276,22 +276,22 @@ def print_rc(item):  # 打印最近更改内容
     else:
         url = f"{WIKI_DIFF_URL}{revid}"
 
-    # 构造弹窗消息并产生弹窗
-    if type == 'log':
-        if logtype == 'move':
-            toast_str += f"（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。"
-        elif logtype == 'renameuser':
-            toast_str += f"（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。"
-        else:
-            toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
-    elif type == 'edit':
-        toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
-    elif type == 'new':
-        toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
-    if 'id' in item:
-        toast_str += f"\n此操作触发了过滤器：{filter}。"
+    if user not in special_users or item.get('filter_id') in ("70", "94"):  # 用户的编辑需要巡查，或者这是标记删除或草稿发布请求的编辑
+        # 构造弹窗消息并产生弹窗
+        if type == 'log':
+            if logtype == 'move':
+                toast_str += f"（移动日志）{user}移动页面{title}至{target_title}，摘要为{comment}。"
+            elif logtype == 'renameuser':
+                toast_str += f"（用户更名日志）{user}重命名用户{olduser}为{newuser}，摘要为{comment}。"
+            else:
+                toast_str += f"（{logtype_str}）{user}对{title}执行了{logaction_str}操作，摘要为{comment}。"
+        elif type == 'edit':
+            toast_str += f"{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。"
+        elif type == 'new':
+            toast_str += f"{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。"
+        if 'id' in item:
+            toast_str += f"\n此操作触发了过滤器：{filter}。"
 
-    if user not in special_users or item.get('filter_id') == "70":  # 用户的编辑需要巡查，或者这是标记删除请求的编辑
         toast_notification(toast_str, "rc", url=url)
 
     # 构造控制台消息并输出
@@ -356,8 +356,8 @@ def print_afl(item):  # 打印滥用日志内容
     result_str = AF_RESULT_MAP.get(result, result)
     url = f"{WIKI_AFL_URL}{id}"
 
-    toast_str += f"{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。"
     if user not in special_users:
+        toast_str += f"{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。"
         toast_notification(toast_str, "afl", url=url)
 
     console_user_str = format_user(user)
@@ -440,7 +440,7 @@ if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"Scribunt
     })
     purge_response.raise_for_status()
     purge_result = purge_response.json()
-    if purge_result["purge"][0]["purged"] == True:
+    if purge_result["purge"][0]["purged"]:
         print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
     else:
         print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
