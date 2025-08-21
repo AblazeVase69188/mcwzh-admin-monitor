@@ -16,6 +16,17 @@ WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
 WIKI_LOG_URL = WIKI_BASE_URL + "Special:Log/"
 WIKI_AFL_URL = WIKI_BASE_URL + "Special:AbuseLog/"
 
+
+class Colors:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    CYAN = '\033[96m'
+    MAGENTA = '\033[95m'
+    RESET = '\033[0m'
+
+
 LOG_TYPE_MAP = {
     "abusefilter": "滥用过滤器日志",
     "abusefilterblockeddomainhit": "被阻止的域名访问日志",
@@ -201,12 +212,12 @@ def call_api(params):  # 从Mediawiki API获取数据
 
             toast_notification("未获取到数据，20秒后重试。", "warn", False)
             current_time = datetime.now().strftime("%H:%M:%S")
-            print(f"（{current_time}）未获取到数据，20秒后重试。", end='\n\n')
+            print(f"（{current_time}）{Colors.RED}未获取到数据，20秒后重试。{Colors.RESET}", end='\n\n')
             time.sleep(20)
 
     toast_notification("重试失败，请检查网络连接。", "warn", False)
     current_time = datetime.now().strftime("%H:%M:%S")
-    print(f"（{current_time}）重试失败，请检查网络连接。")
+    print(f"（{current_time}）{Colors.RED}重试失败，请检查网络连接。{Colors.RESET}")
     input("按回车键退出")
     sys.exit(1)
 
@@ -284,23 +295,49 @@ def print_rc(item):  # 打印最近更改内容
         toast_notification(toast_str, "rc", url=url)
 
     # 构造控制台消息并输出
+    console_user_str = format_user(user)
     if type == 'log':
         if logtype == 'move':
-            console_str += f"（移动日志）{timestamp}，{user}移动页面{title}至{target_title}，摘要为{comment}。\n"
+            console_str += (f"（{Colors.MAGENTA}移动日志{Colors.RESET}）"
+                            f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                            f"{console_user_str}"
+                            f"移动页面{Colors.BLUE}{title}{Colors.RESET}"
+                            f"至{Colors.BLUE}{target_title}{Colors.RESET}，"
+                            f"摘要为{Colors.CYAN}{comment}{Colors.RESET}。\n")
         elif logtype == 'renameuser':
-            console_str += f"（用户更名日志）{timestamp}，{user}重命名用户{olduser}为{newuser}，摘要为{comment}。\n"
+            console_str += (f"{Colors.MAGENTA}（用户更名日志）{Colors.RESET}"
+                            f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                            f"{console_user_str}"
+                            f"重命名用户{Colors.BLUE}{olduser}{Colors.RESET}"
+                            f"为{Colors.BLUE}{newuser}{Colors.RESET}，"
+                            f"摘要为{Colors.CYAN}{comment}{Colors.RESET}。\n")
         else:
-            console_str += f"（{logtype_str}）{timestamp}，{user}对{title}执行了{logaction_str}操作，摘要为{comment}。\n"
+            console_str += (f"（{Colors.MAGENTA}{logtype_str}{Colors.RESET}）"
+                            f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                            f"{console_user_str}"
+                            f"对{Colors.BLUE}{title}{Colors.RESET}"
+                            f"执行了{Colors.MAGENTA}{logaction_str}{Colors.RESET}操作，"
+                            f"摘要为{Colors.CYAN}{comment}{Colors.RESET}。\n")
     elif type == 'edit':
-        console_str += f"{timestamp}，{user}在{title}做出编辑，字节更改为{len_diff}，摘要为{comment}。\n"
+        console_str += (f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                        f"{console_user_str}"
+                        f"在{Colors.BLUE}{title}{Colors.RESET}做出编辑，"
+                        f"字节更改为{Colors.MAGENTA}{len_diff}{Colors.RESET}，"
+                        f"摘要为{Colors.CYAN}{comment}{Colors.RESET}。\n")
     elif type == 'new':
-        console_str += f"{timestamp}，{user}创建{title}，字节更改为{len_diff}，摘要为{comment}。\n"
+        console_str += (f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                        f"{console_user_str}"
+                        f"创建{Colors.BLUE}{title}{Colors.RESET}，"
+                        f"字节更改为{Colors.MAGENTA}{len_diff}{Colors.RESET}，"
+                        f"摘要为{Colors.CYAN}{comment}{Colors.RESET}。\n")
     if 'id' in item:
-        console_str += f"此操作触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
-    console_str += f"{url}\n"
+        console_str += (f"此操作触发了过滤器。"
+                        f"采取的行动：{Colors.MAGENTA}{result_str}{Colors.RESET}；"
+                        f"过滤器描述：{Colors.CYAN}{filter}{Colors.RESET}。\n")
+    console_str += f"{Colors.YELLOW}{url}{Colors.RESET}\n"
     # 无巡查豁免权限的用户上传单个文件的多个版本时，需要此种特殊巡查方式
     if type == 'log' and logtype == 'upload':
-        console_str += f"特殊巡查：{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}\n"
+        console_str += f"特殊巡查：{Colors.YELLOW}{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}{Colors.RESET}\n"
 
     print(console_str)
 
@@ -323,8 +360,14 @@ def print_afl(item):  # 打印滥用日志内容
     if user not in special_users:
         toast_notification(toast_str, "afl", url=url)
 
-    console_str += f"{timestamp}，{user}在{title}执行操作“{action_str}”时触发了过滤器。采取的行动：{result_str}；过滤器描述：{filter}。\n"
-    console_str += f"{url}\n"
+    console_user_str = format_user(user)
+    console_str += (f"{Colors.CYAN}{timestamp}{Colors.RESET}，"
+                    f"{console_user_str}"
+                    f"在{Colors.BLUE}{title}{Colors.RESET}"
+                    f"执行操作“{Colors.MAGENTA}{action_str}{Colors.RESET}”时触发了过滤器。"
+                    f"采取的行动：{Colors.MAGENTA}{result_str}{Colors.RESET}；"
+                    f"过滤器描述：{Colors.CYAN}{filter}{Colors.RESET}。\n")
+    console_str += f"{Colors.YELLOW}{url}{Colors.RESET}\n"
     print(console_str)
 
 
@@ -342,6 +385,13 @@ def adjust_comment(comment):  # 摘要为空时输出（空）
 def adjust_length_diff(newlen, oldlen):  # 字节数变化输出和MediaWiki一致
     diff = newlen - oldlen
     return f"+{diff}" if diff > 0 else diff
+
+
+def format_user(user):  # 拥有巡查豁免权限的用户名标记为绿色，而不是蓝色
+    if user in special_users:
+        return f"{Colors.GREEN}{user}{Colors.RESET}"
+    else:
+        return f"{Colors.BLUE}{user}{Colors.RESET}"
 
 
 # 加载配置
@@ -391,9 +441,9 @@ if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"Scribunt
     purge_response.raise_for_status()
     purge_result = purge_response.json()
     if purge_result["purge"][0]["purged"] == True:
-        print("“箱子战利品（物品索引）”刷新成功")
+        print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
     else:
-        print("“箱子战利品（物品索引）”刷新失败")
+        print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
 
 # 获取登录令牌
 try:
@@ -408,7 +458,7 @@ try:
     print("登录令牌获取成功")
 except Exception as e:
     toast_notification(f"登录令牌获取异常：{e}", "warn", False)
-    print("登录令牌获取异常：", e)
+    print(f"{Colors.RED}登录令牌获取异常：{Colors.RESET}", e)
     input("按回车键退出")
     sys.exit(1)
 
@@ -427,15 +477,15 @@ try:
     login_data = login_response.json()
 except Exception as e:
     toast_notification(f"登录请求异常：{e}", "warn", False)
-    print("登录请求异常：", e)
+    print(f"{Colors.RED}登录请求异常：{Colors.RESET}", e)
     input("按回车键退出")
     sys.exit(1)
 
 if login_data['login']['result'] == 'Success':
-    print("登录成功")
+    print("登录成功", end='\n\n')
 else:
     toast_notification(f"登录失败：{login_data['login']}", "warn", False)
-    print("登录失败：", login_data['login'])
+    print(f"{Colors.RED}登录失败：{Colors.RESET}", login_data['login'])
     input("按回车键退出")
     sys.exit(1)
 
