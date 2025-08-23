@@ -10,11 +10,6 @@ from winotify import Notification
 
 CONFIG_FILE = "config.json"
 SPECIAL_USERS_FILE = "Autopatrolled_user.json"
-WIKI_BASE_URL = "https://zh.minecraft.wiki/"
-WIKI_API_URL = WIKI_BASE_URL + "api.php"
-WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
-WIKI_LOG_URL = WIKI_BASE_URL + "Special:Log/"
-WIKI_AFL_URL = WIKI_BASE_URL + "Special:AbuseLog/"
 
 
 class Colors:
@@ -223,15 +218,19 @@ def call_api(params):  # 从Mediawiki API获取数据
 
 
 def toast_notification(msg_str, sound_type, add_button=True, url=""):  # 播放音效并产生弹窗通知
-    try:
-        if sound_type == "rc":
-            playsound(RC_SOUND_FILE, block=False)
-        elif sound_type == "afl":
-            playsound(AFL_SOUND_FILE, block=False)
-        elif sound_type == "warn":
-            playsound(WARN_SOUND_FILE, block=False)
-    except PlaysoundException:
-        pass
+    if not sendtoast:
+        return
+
+    if doplaysound:
+        try:
+            if sound_type == "rc":
+                playsound(RC_SOUND_FILE, block=False)
+            elif sound_type == "afl":
+                playsound(AFL_SOUND_FILE, block=False)
+            elif sound_type == "warn":
+                playsound(WARN_SOUND_FILE, block=False)
+        except PlaysoundException:
+            pass
 
     toast = Notification(
         app_id="Minecraft Wiki Admin Monitor",
@@ -398,12 +397,50 @@ def format_user(user):  # 拥有巡查豁免权限的用户名标记为绿色，
 with open(CONFIG_FILE, "r") as config_file:
     config = json.load(config_file)
     user_agent = config["user_agent"]
-    interval = float(config["interval"])
     username = config["username"]
     password = config["password"]
+    lang = config["lang"]
+    interval = float(config["interval"])
+    sendtoast = config["sendtoast"]
+    doplaysound = config["playsound"]
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
     AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
     WARN_SOUND_FILE = config["WARN_SOUND_FILE"]
+
+# 如果选择不发送弹窗通知，那么也不会播放音效
+if not sendtoast:
+    doplaysound = False
+
+# 检查指定的语言是否存在
+lang_list = ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'lzh', 'nl', 'pt', 'ru', 'th', 'uk', 'zh', 'meta']
+
+if lang not in lang_list:
+    toast_notification("不存在此语言的Minecraft Wiki！", "warn", False)
+    print(f"{Colors.RED}不存在此语言的Minecraft Wiki！{Colors.RESET}")
+    input("按回车键退出")
+    sys.exit(1)
+
+elif lang == 'en':
+    WIKI_BASE_URL = "https://minecraft.wiki/"
+
+else:
+    WIKI_BASE_URL = f"https://{lang}.minecraft.wiki/"
+
+WIKI_API_URL = WIKI_BASE_URL + "api.php"
+WIKI_DIFF_URL = WIKI_BASE_URL + "?diff="
+WIKI_LOG_URL = WIKI_BASE_URL + "Special:Log/"
+WIKI_AFL_URL = WIKI_BASE_URL + "Special:AbuseLog/"
+
+# 预览部分配置
+print("配置预览：")
+print(f"用户代理：{Colors.CYAN}{user_agent}{Colors.RESET}")
+print(f"使用的机器人密码名称：{Colors.CYAN}{username}{Colors.RESET}")
+print(f"监视的Wiki：{Colors.CYAN}{lang}{Colors.RESET}")
+print(f"更新间隔：{Colors.CYAN}{interval}秒{Colors.RESET}")
+print(f"发送弹窗通知：{Colors.CYAN}{"是" if sendtoast else "否"}{Colors.RESET}")
+print(f"发送弹窗通知时播放声音：{Colors.CYAN}{"是" if sendtoast else "否"}{Colors.RESET}")
+if lang not in ("zh", "lzh"):
+    print(f"{Colors.RED}警告：尝试监视的Wiki不是中文或文言Wiki。出现的漏洞可能不会修复。{Colors.RESET}")
 
 # 获取巡查豁免权限用户列表
 try:
@@ -417,33 +454,34 @@ except FileNotFoundError:
 session = requests.Session()
 session.headers.update({"User-Agent": user_agent})
 
-# 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
-parse_response = session.get(WIKI_API_URL, params={
-    "action": "parse",
-    "format": "json",
-    "page": "箱子战利品（物品索引）",
-    "prop": "encodedjsconfigvars",
-    "formatversion": 2,
-})
-parse_response.raise_for_status()
-parse_data = parse_response.json()
-
-encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
-if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
-    print("“箱子战利品（物品索引）”出现脚本运行超时，正在刷新中")
-
-    purge_response = session.post(WIKI_API_URL, data={
-        "action": "purge",
+if lang == 'zh':
+    # 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
+    parse_response = session.get(WIKI_API_URL, params={
+        "action": "parse",
         "format": "json",
-        "titles": "箱子战利品（物品索引）",
+        "page": "箱子战利品（物品索引）",
+        "prop": "encodedjsconfigvars",
         "formatversion": 2,
     })
-    purge_response.raise_for_status()
-    purge_result = purge_response.json()
-    if purge_result["purge"][0]["purged"]:
-        print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
-    else:
-        print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
+    parse_response.raise_for_status()
+    parse_data = parse_response.json()
+
+    encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
+    if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
+        print("“箱子战利品（物品索引）”出现脚本运行超时，正在刷新中")
+
+        purge_response = session.post(WIKI_API_URL, data={
+            "action": "purge",
+            "format": "json",
+            "titles": "箱子战利品（物品索引）",
+            "formatversion": 2,
+        })
+        purge_response.raise_for_status()
+        purge_result = purge_response.json()
+        if purge_result["purge"][0]["purged"]:
+            print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
+        else:
+            print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
 
 # 获取登录令牌
 try:
