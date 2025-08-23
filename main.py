@@ -188,10 +188,10 @@ AF_RESULT_ORDER_MAP = [
     "rangeblock",
     "block",
     "disallow",
+    "warn",
+    "tag",
     "throttle",
     "degroup",
-    "warn"
-    "tag",
     ""
 ]
 
