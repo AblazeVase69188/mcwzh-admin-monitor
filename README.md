@@ -4,7 +4,7 @@
 The program automatically gets new content in RecentChanges and AbuseLogs of the Chinese or Literary Chinese Minecraft Wiki.
 
 ## 用途
-每过一段时间尝试获取一次中文或文言Minecraft Wiki最近更改和滥用日志的变化情况，新更改内容在Windows终端输出。如果是无巡查豁免权限的用户产生的，或是触发了70号过滤器“标记删除请求”或94号过滤器“草稿发布请求”，还会产生通知弹窗并播放音效。
+每过一段时间尝试获取一次中文或文言Minecraft Wiki最近更改和滥用日志的变化情况，新更改内容在Windows终端输出。如果是无巡查豁免权限的用户产生的，或是监视中文Wiki时触发了70号过滤器“标记删除请求”或94号过滤器“草稿发布请求”，还会产生通知弹窗并播放音效。
 
 程序会将单次操作产生的多个滥用日志项合并输出。程序会将对应的最近更改和滥用日志合并输出。
 
@@ -23,6 +23,8 @@ The program automatically gets new content in RecentChanges and AbuseLogs of the
 * 请根据自身需求设定发送API请求的间隔`interval`。
 * `sendtoast`控制是否会产生通知弹窗。
 * `playsound`控制是否会在产生通知弹窗的同时播放音效。如果`sendtoast`设为`false`那么这一项也会自动设为`false`。
+* `max_retries`控制网络异常时的最大重试次数。
+* `retry_delay`控制网络异常时的重试间隔。
 * `RC_SOUND_FILE`、`AFL_SOUND_FILE`和`WARN_SOUND_FILE`用于指定产生弹窗时播放什么音效，这三项对应最近更改、滥用日志和程序的警告信息。可以是同目录下文件名或完整文件路径（JSON要求对反斜杠转义，不过也是可以正常解析路径的）。这些项为选填，不填就不会播放音效。
 
 程序需要同目录存在`Autopatrolled_user.json`，作为有巡查豁免权限用户的列表。若不存在，只会在后台输出提示，然后所有用户均视为无巡查豁免权限。
