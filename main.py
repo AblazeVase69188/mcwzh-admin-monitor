@@ -202,13 +202,13 @@ def call_api(params):  # 从Mediawiki API获取数据
         except requests.exceptions.RequestException:
             # 获取数据失败后只重试一次
             tries += 1
-            if tries > 1:
+            if tries > max_retries:
                 break
 
-            toast_notification("未获取到数据，20秒后重试。", "warn", False)
+            toast_notification(f"未获取到数据，{retry_delay}秒后重试。", "warn", False)
             current_time = datetime.now().strftime("%H:%M:%S")
-            print(f"（{current_time}）{Colors.RED}未获取到数据，20秒后重试。{Colors.RESET}", end='\n\n')
-            time.sleep(20)
+            print(f"（{current_time}）{Colors.RED}未获取到数据，{retry_delay}秒后重试。{Colors.RESET}", end='\n\n')
+            time.sleep(retry_delay)
 
     toast_notification("重试失败，请检查网络连接。", "warn", False)
     current_time = datetime.now().strftime("%H:%M:%S")
@@ -275,7 +275,7 @@ def print_rc(item):  # 打印最近更改内容
     else:
         url = f"{WIKI_DIFF_URL}{revid}"
 
-    if user not in special_users or item.get('filter_id') in ("70", "94"):  # 用户的编辑需要巡查，或者这是标记删除或草稿发布请求的编辑
+    if user not in special_users or (lang == "zh" and item.get('filter_id') in ("70", "94")):  # 用户的编辑需要巡查，或者这是标记删除或草稿发布请求的编辑
         # 构造弹窗消息并产生弹窗
         if type == 'log':
             if logtype == 'move':
@@ -403,6 +403,8 @@ with open(CONFIG_FILE, "r") as config_file:
     interval = float(config["interval"])
     sendtoast = config["sendtoast"]
     doplaysound = config["playsound"]
+    max_retries = int(config["max_retries"])
+    retry_delay = float(config["retry_delay"])
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
     AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
     WARN_SOUND_FILE = config["WARN_SOUND_FILE"]
@@ -439,8 +441,11 @@ print(f"监视的Wiki：{Colors.CYAN}{lang}{Colors.RESET}")
 print(f"更新间隔：{Colors.CYAN}{interval}秒{Colors.RESET}")
 print(f"发送弹窗通知：{Colors.CYAN}{"是" if sendtoast else "否"}{Colors.RESET}")
 print(f"发送弹窗通知时播放声音：{Colors.CYAN}{"是" if sendtoast else "否"}{Colors.RESET}")
+print(f"网络异常时最大重试次数：{Colors.CYAN}{max_retries}{Colors.RESET}")
+print(f"网络异常时重试间隔：{Colors.CYAN}{retry_delay}秒{Colors.RESET}")
 if lang not in ("zh", "lzh"):
     print(f"{Colors.RED}警告：尝试监视的Wiki不是中文或文言Wiki。出现的漏洞可能不会修复。{Colors.RESET}")
+print()
 
 # 获取巡查豁免权限用户列表
 try:
