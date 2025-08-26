@@ -565,7 +565,6 @@ last_afl_id = initial_data["query"]["abuselog"][0]["id"]
 print("启动成功", end='\n\n')
 
 time.sleep(interval)
-next_run = time.monotonic()
 
 # 主循环
 while True:
@@ -575,6 +574,7 @@ while True:
     })
 
     current_data = call_api(query_params)
+    loop_start_time = time.monotonic()  # 记录循环开始时间
     # API默认返回的顺序是新的在前，旧的在后，所以需要反转
 
     new_rc_items = []
@@ -686,8 +686,7 @@ while True:
             else:
                 print_afl(merged_item)
 
-    # 防止前面逻辑耗时过长，导致单次请求间隔超出设定时间
-    next_run += interval
-    sleep_time = next_run - time.monotonic()
-    if sleep_time > 0:
-        time.sleep(sleep_time)
+    # 确保每次循环之间有固定的间隔
+    loop_time = time.monotonic() - loop_start_time
+    if loop_time < interval:
+        time.sleep(interval - loop_time)
