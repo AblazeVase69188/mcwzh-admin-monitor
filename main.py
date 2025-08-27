@@ -400,11 +400,11 @@ with open(CONFIG_FILE, "r") as config_file:
     username = config["username"]
     password = config["password"]
     lang = config["lang"]
-    interval = float(config["interval"])
+    interval = int(config["interval"])
     sendtoast = config["sendtoast"]
     doplaysound = config["playsound"]
     max_retries = int(config["max_retries"])
-    retry_delay = float(config["retry_delay"])
+    retry_delay = int(config["retry_delay"])
     RC_SOUND_FILE = config["RC_SOUND_FILE"]
     AFL_SOUND_FILE = config["AFL_SOUND_FILE"]
     WARN_SOUND_FILE = config["WARN_SOUND_FILE"]
@@ -412,6 +412,9 @@ with open(CONFIG_FILE, "r") as config_file:
 # 如果选择不发送弹窗通知，那么也不会播放音效
 if not sendtoast:
     doplaysound = False
+
+# 检查箱子战利品（物品索引）的时间硬编码为一个小时
+purge_loop_count = 3599//interval+1
 
 # 检查指定的语言是否存在
 lang_list = ['de', 'en', 'es', 'fr', 'it', 'ja', 'ko', 'lzh', 'nl', 'pt', 'ru', 'th', 'uk', 'zh', 'meta']
@@ -458,35 +461,6 @@ except FileNotFoundError:
 # 创建会话
 session = requests.Session()
 session.headers.update({"User-Agent": user_agent})
-
-if lang == 'zh':
-    # 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
-    parse_response = session.get(WIKI_API_URL, params={
-        "action": "parse",
-        "format": "json",
-        "page": "箱子战利品（物品索引）",
-        "prop": "encodedjsconfigvars",
-        "formatversion": 2,
-    })
-    parse_response.raise_for_status()
-    parse_data = parse_response.json()
-
-    encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
-    if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
-        print("“箱子战利品（物品索引）”出现脚本运行超时，正在刷新中")
-
-        purge_response = session.post(WIKI_API_URL, data={
-            "action": "purge",
-            "format": "json",
-            "titles": "箱子战利品（物品索引）",
-            "formatversion": 2,
-        })
-        purge_response.raise_for_status()
-        purge_result = purge_response.json()
-        if purge_result["purge"][0]["purged"]:
-            print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
-        else:
-            print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
 
 # 获取登录令牌
 try:
@@ -561,6 +535,8 @@ last_rc_timestamp = initial_data["query"]["recentchanges"][0]["timestamp"]
 last_rcid = initial_data["query"]["recentchanges"][0]["rcid"]
 last_afl_timestamp = initial_data["query"]["abuselog"][0]["timestamp"]
 last_afl_id = initial_data["query"]["abuselog"][0]["id"]
+
+loop_count = 0
 
 print("启动成功", end='\n\n')
 
@@ -690,3 +666,39 @@ while True:
     loop_time = time.monotonic() - loop_start_time
     if loop_time < interval:
         time.sleep(interval - loop_time)
+
+    loop_count += 1
+    if loop_count == purge_loop_count and lang == 'zh':
+        loop_count = 0
+
+        # 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
+        print("正在检查“箱子战利品（物品索引）”是否存在脚本运行超时")
+        parse_response = session.get(WIKI_API_URL, params={
+            "action": "parse",
+            "format": "json",
+            "page": "箱子战利品（物品索引）",
+            "prop": "encodedjsconfigvars",
+            "formatversion": 2,
+        })
+        parse_response.raise_for_status()
+        parse_data = parse_response.json()
+
+        encodedjsconfigvars = parse_data["parse"]["encodedjsconfigvars"]
+        if encodedjsconfigvars == """{\"ScribuntoErrors\":{\"ff37505e\":true},\"ScribuntoErrors-ff37505e\":\"<p>脚本运行超时。</p><p>没有可用的进一步细节。</p>\"}""":
+            print("“箱子战利品（物品索引）”出现脚本运行超时，正在刷新中")
+
+            purge_response = session.post(WIKI_API_URL, data={
+                "action": "purge",
+                "format": "json",
+                "titles": "箱子战利品（物品索引）",
+                "formatversion": 2,
+            })
+            purge_response.raise_for_status()
+            purge_result = purge_response.json()
+            if purge_result["purge"][0]["purged"]:
+                print("“箱子战利品（物品索引）”刷新成功", end='\n\n')
+            else:
+                print("“箱子战利品（物品索引）”刷新失败", end='\n\n')
+
+        else:
+            print("“箱子战利品（物品索引）”未出现异常", end='\n\n')
