@@ -3,11 +3,11 @@
     "username": "username@botpasswordname",
     "password": "randomstring",
     "lang": "zh",
-    "interval": "纯数字，大于等于3",
+    "interval": "整数，大于等于3",
     "sendtoast": true,
     "playsound": false,
     "max_retries": "整数，大于等于1",
-    "retry_delay": "纯数字，最好比interval大",
+    "retry_delay": "整数",
     "RC_SOUND_FILE": "sound1.mp3",
     "AFL_SOUND_FILE": "sound2.mp3",
     "WARN_SOUND_FILE": "sound3.mp3"
