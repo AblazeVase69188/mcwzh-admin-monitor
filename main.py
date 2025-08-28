@@ -335,7 +335,7 @@ def print_rc(item):  # 打印最近更改内容
                         f"过滤器描述：{Colors.CYAN}{filter}{Colors.RESET}。\n")
     console_str += f"{Colors.YELLOW}{url}{Colors.RESET}\n"
     # 无巡查豁免权限的用户上传单个文件的多个版本时，需要此种特殊巡查方式
-    if type == 'log' and logtype == 'upload':
+    if type == 'log' and logtype == 'upload' and user not in special_users:
         console_str += f"特殊巡查：{Colors.YELLOW}{WIKI_BASE_URL}?curid={item['pageid']}&action=markpatrolled&rcid={item['rcid']}{Colors.RESET}\n"
 
     print(console_str)
