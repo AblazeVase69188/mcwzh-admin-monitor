@@ -667,10 +667,7 @@ while True:
     if loop_time < interval:
         time.sleep(interval - loop_time)
 
-    loop_count += 1
-    if loop_count == purge_loop_count and lang == 'zh':
-        loop_count = 0
-
+    if loop_count == 0 and lang == 'zh':
         # 箱子战利品（物品索引），长期存在可以刷新移除的脚本超时错误
         print("正在检查“箱子战利品（物品索引）”是否存在脚本运行超时")
         parse_response = session.get(WIKI_API_URL, params={
@@ -702,3 +699,7 @@ while True:
 
         else:
             print("“箱子战利品（物品索引）”未出现异常", end='\n\n')
+
+    loop_count += 1
+    if loop_count == purge_loop_count:
+        loop_count = 0
